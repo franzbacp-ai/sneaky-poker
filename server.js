@@ -430,9 +430,9 @@ function handlePlayerAction(g, idx, action) {
     if (stillIn.length === 1) { endHand(g, stillIn[0]); return; }
 
     const canAct = g.players.filter(pl => !pl.folded && !pl.outOfChips && !pl.isAllIn && !pl.queued);
-    if (canAct.length === 0) {
+    if (canAct.length <= 1) {
         if (stillIn.length > 1) {
-            g.allInShowdown = true; g.lastAction = '\u26a1 ALL-IN SHOWDOWN!';
+            g.allInShowdown = true; g.lastAction = '⚡ ALL-IN SHOWDOWN!';
             g.sidePots = buildSidePots(g); broadcastState(g);
             setTimeout(() => runOutBoard(g), 2500);
         }
@@ -461,7 +461,8 @@ function advancePhase(g) {
     else if (g.phase === 'TURN')    { g.board.push(...g.deck.dealCommunity(1)); g.phase = 'RIVER'; }
     else { g.sidePots = buildSidePots(g); determineWinner(g); return; }
     const canAct = inHandPlayers(g).filter(p => !p.isAllIn);
-    if (canAct.length === 0) {
+    // If nobody or only one player can act (everyone else all-in/folded), auto-run the board
+    if (canAct.length <= 1) {
         if (g.phase === 'RIVER') { g.sidePots = buildSidePots(g); determineWinner(g); }
         else { broadcastState(g); setTimeout(() => advancePhase(g), 2000); }
         return;

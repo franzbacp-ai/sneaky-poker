@@ -120,7 +120,7 @@ let myId = null, lastPhase = '', lastPotValue = 0;
 let playerLastActions = {}, _lastToastMsg = '';
 const params = new URLSearchParams(location.search);
 const MASTER = params.get('master');
-let _minRaise = 2, _maxRaise = 200, _potSize = 0, _myTurnActive = false;
+let _minRaise = 2, _maxRaise = 200, _potSize = 0, _myTurnActive = false, _callDiff = 0;
 
 // ── Turn timer ────────────────────────────────────────────────────────────
 let _timerInterval = null, _timerEnd = 0;
@@ -317,8 +317,7 @@ function act(type) {
   stopTurnTimer();
   if (type === 'allin') playSound('snd-allin');
   else if (type === 'call') {
-    const lbl = document.getElementById('btn-call').textContent;
-    playSound((lbl === 'CHECK' || lbl === 'CHECKEN') ? 'snd-check' : 'snd-chips');
+    playSound(_callDiff <= 0 ? 'snd-check' : 'snd-chips');
   } else if (type === 'raise') playSound('snd-chips');
   socket.emit('action', { type, amount: document.getElementById('raise-val').value });
   // Reset slider to min raise after acting
@@ -598,8 +597,14 @@ function applyState(s) {
   document.querySelectorAll('.preset-btn').forEach(b => b.disabled = !myTurn);
   if (me && myTurn) {
     const bb = s.settings?.bb || 1;
-    const diff = (s.currentCall||0) - (me.bet||0);
-    document.getElementById('btn-call').textContent = diff<=0 ? t('check') : `${t('call')} ${diff.toFixed(1)}`;
+    const diff    = (s.currentCall||0) - (me.bet||0);
+    _callDiff     = diff;
+    const callAmt = Math.min(diff, me.stack||0);
+    let callLbl;
+    if (diff <= 0)                      callLbl = t('check');
+    else if (callAmt >= (me.stack||0))  callLbl = `${t('allIn')} ${callAmt.toFixed(1)}`;
+    else                                callLbl = `${t('call')} ${callAmt.toFixed(1)}`;
+    document.getElementById('btn-call').textContent = callLbl;
     _minRaise = Math.max((s.currentCall||bb)+bb, bb*2);
     _maxRaise = (me.stack||0) + (me.bet||0);
     _potSize  = s.pot || 0;
