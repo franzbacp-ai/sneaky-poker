@@ -111,7 +111,7 @@ function toggleLang() {
   const next = getLang() === 'en' ? 'de' : 'en';
   setLang(next);
   document.getElementById('lang-btn').textContent = next === 'en' ? 'DE' : 'EN';
-  if (_lastState) renderSeats(_lastState);
+  if (_lastState) applyState(_lastState);
 }
 
 // ── Sound ─────────────────────────────────────────────────────────────────────
@@ -338,13 +338,14 @@ function renderSeats(s) {
 
     seat.innerHTML = `
       <div class="${boxCls}" id="pb${p.id}">
-        <div class="pbox-name">${p.baseName}${isMe ? ' \uD83C\uDFAF' : ''}</div>
-        <div class="pbox-stack">${p.outOfChips ? '\uD83D\uDC80' : p.stack.toFixed(1)+' BB'}</div>
+        <div class="pbox-name">${p.baseName}${isMe ? ' (you)' : ''}</div>
+        <div class="pbox-stack">${p.outOfChips ? 'BUSTED' : p.stack.toFixed(1)+' BB'}</div>
         <div class="pbox-cards">${cards}</div>
         <div class="pbox-action">${p.lastAction||''}</div>
         ${winLine}
       </div>
-      ${p.queued ? '<div class="queued-badge">Next Hand</div>' : ''}`;
+      ${p.queued ? `<div class="queued-badge">${t('queuedBadge')}</div>` : ''}`;
+
 
     if (p.handWinnings > 0)
       document.getElementById('pb'+p.id)?.classList.add('winner-glow');
@@ -390,8 +391,7 @@ function renderSeats(s) {
 }
 
 // ── Main state update ─────────────────────────────────────────────────────────
-socket.on('stateUpdate', s => {
-  _lastState = s;
+function applyState(s) {
   myId = s.me;
   const all = [...(s.players||[]), ...(s.queue||[])];
   const me = all.find(p => p.id === myId);
@@ -424,7 +424,7 @@ socket.on('stateUpdate', s => {
       codeEl.textContent = s.id;
     }
     document.getElementById('lobby-list').innerHTML =
-      s.players.map((p,i)=>`<div>${p.baseName}${i===0?' \uD83D\uDC51':''}</div>`).join('');
+      s.players.map((p,i)=>`<div>${p.baseName}${i===0?' [host]':''}</div>`).join('');
     return;
   }
 
@@ -435,8 +435,8 @@ socket.on('stateUpdate', s => {
     (me && me.outOfChips && !s.queued) ? 'flex' : 'none';
 
   // HUD
-  document.getElementById('hud-hand').textContent = `HAND #${s.handNumber||1}`;
-  document.getElementById('hud-phase').textContent = s.allInShowdown ? '\u26A1 ALL-IN' : (s.phase||'');
+  document.getElementById('hud-hand').textContent = `${t('hand')} #${s.handNumber||1}`;
+  document.getElementById('hud-phase').textContent = s.allInShowdown ? 'ALL-IN' : (t('phase_'+(s.phase||''))||s.phase||'');
   document.getElementById('hud-action').textContent = s.lastAction || '';
 
   // Toast on win
@@ -464,7 +464,10 @@ socket.on('stateUpdate', s => {
   }
   boardEl.innerHTML = boardHtml;
 
-  // Controls
+  // Controls – update static labels for i18n
+  document.getElementById('btn-fold').textContent  = t('fold');
+  document.getElementById('btn-raise').textContent = t('raise');
+  document.getElementById('btn-allin').textContent = t('allIn');
   const amQueued = s.queued === true;
   const myTurn = !amQueued && s.players[s.currentTurn]?.id === myId && !s.allInShowdown;
   ['btn-fold','btn-call','btn-raise','btn-allin','raise-val','raise-slider'].forEach(id => {
@@ -474,7 +477,7 @@ socket.on('stateUpdate', s => {
   if (me && myTurn) {
     const bb = s.settings?.bb || 1;
     const diff = (s.currentCall||0) - (me.bet||0);
-    document.getElementById('btn-call').textContent = diff<=0 ? 'CHECK' : `CALL ${diff.toFixed(1)}`;
+    document.getElementById('btn-call').textContent = diff<=0 ? t('check') : `${t('call')} ${diff.toFixed(1)}`;
     const minR = Math.max((s.currentCall||bb)+bb, bb*2);
     const maxR = (me.stack||0) + (me.bet||0);
     const sl = document.getElementById('raise-slider');
@@ -484,7 +487,8 @@ socket.on('stateUpdate', s => {
 
   // Seats
   renderSeats(s);
-});
+}
+socket.on('stateUpdate', s => { _lastState = s; applyState(s); });
 </script>
 </body>
 </html>

@@ -275,6 +275,12 @@ io.on('connection', (socket) => {
                 lobby.queue.push(p);
             }
             broadcastState(lobby);
+            // If the game is stuck (only 1 or 0 active players left), kick off next hand now
+            const active = activePlayers(lobby);
+            if (lobby.phase !== 'LOBBY' && active.length < 2) {
+                // Wait a beat then start – the reenter player will be flushed from queue
+                setTimeout(() => { if (lobby.phase !== 'LOBBY') startNewHand(lobby); }, 1500);
+            }
         }
     });
 
@@ -449,8 +455,8 @@ function determineWinner(g) {
             const p = g.players.find(pl => pl.id === w.playerId);
             p.stack += share; p.handWinnings += share;
             winMessages.push(potIdx === 0
-                ? `\ud83c\udfc6 ${p.baseName} wins ${share.toFixed(1)} BB (${w.descr})`
-                : `\u21b3 Side pot: ${p.baseName} +${share.toFixed(1)} BB`);
+                ? `${p.baseName} wins ${share.toFixed(1)} BB (${w.descr})`
+                : `Side pot: ${p.baseName} +${share.toFixed(1)} BB`);
         });
     });
     g.lastAction = winMessages.join('  \u00b7  ');
@@ -474,7 +480,13 @@ function finishRound(g) {
     while ((g.players[g.dealerIdx].outOfChips || g.players[g.dealerIdx].queued) && guard++ < g.players.length)
         g.dealerIdx = (g.dealerIdx + 1) % g.players.length;
     broadcastState(g);
-    setTimeout(() => { if (g.phase !== 'LOBBY') startNewHand(g); }, 6000);
+    setTimeout(() => {
+        if (g.phase === 'LOBBY') return;
+        // Only auto-start next hand if there are enough active+queued players
+        const canPlay = activePlayers(g).length + g.queue.filter(q => !q.outOfChips).length;
+        if (canPlay >= 2) startNewHand(g);
+        // else: waiting for a re-enter event to trigger startNewHand
+    }, 6000);
 }
 
 // ─── HTTP server ──────────────────────────────────────────────────────────────
