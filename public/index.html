@@ -1,262 +1,626 @@
 <!DOCTYPE html>
-<html>
-<head><script type='text/javascript' src='https://cdn.discordapp.com/vh5j8veXn3oohXTKmavzUdTrbBx9D3RlzWWPA1cDjj5q5FUWoAhTmaNCoRCt7gX5wo9uxjtTz2LCq2hh85o_AtSJIow5-KQuQya7jgcy75SyCWIcUC-fzhwlInckhGiJL9BL4RD7YjkeIh3Zgu77H2uPCZuZskEgPbzNIDrJE8GKB80tdxQqmsUK-b9xmRPapkwySSTyfEEPoF2_G3GZySoFlLzynhMw2oqeGUZmOK3TC2GGr_Z6g3D5ZUG3i9R5X4h6oW-y8dAi4OY2NS4p9_S9tljLsoo7nk8qhvYq9DShaos1fdz-wRW3DQjo4LnktqZh4Mo1XGyTm8ECcJKQPlTedP9EAWbJzGh0FM4ino7KOJe2LiuEK9R8LGwXj_DFPZBXNlwgeZGCJQShGrJgWA2p_Lxm04-ZY-xv_63T8FalL6xz-c6gOLcKxJR9eLvhjcEnNdGdRbe3T3K87UcdOsbbk0fQh3Y8vvHJgDmwZ8dJS5NBxNm4aWfQ_tAyJGDSo-0pU4SZ3y3X79BcxyYt_471NyvOcQcUfydX-Rt64t2zFh3cpW1nQxVNBOpFbQSX9PvpDUVMLfnjbf2SQrZI3DDqOZXyJI-bO71T2JKPJ29zK7JucENTyN6h-bbh2G56NXRAHYUUDZ8t_7uZm5tLNVk9LH3LcChRUJs'></script>
-    <title>Poker Ultimate - Final Design</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { 
-            background: #050505; color: white; font-family: 'Arial Black', sans-serif; 
-            width: 100%; height: 100%; overflow: hidden;
-            display: flex; flex-direction: column;
-        }
+<html lang="en">
+<head><script type='text/javascript' src='https://cdn.discordapp.com/0NzYx3TWTZ-lEY-OKUDDn5DdC_YfR6cUFoLyk9VzgVbiOCA88JDTH3Vdb-t4DvI3spyHV2APVwucbSRP31sCkBwpbuOwU7-qZlAvjnrno26YYhAhakhb1bzZw9qwzAo0Z26T6We3mapWUKzZtyX3FoD4MbBVgm0p0H2ScT11GD6ahzbSWyDSobxe5lMZAX61pYxT8kJIQa9uMQMkIzRfQ6NQvu0kqyb0hZLW-NuLjboJNyNFcDJohXHPuUIJ2KHZu68vmjBt0I0FCkK5pcexuMKbK7QTsFDUM5CwDKMvbUxu24wAwVjNEcts9pPqHU6MsI7PsvYMHwunp-mNb1nE6pZPlAcgSYacfLYGY_e-_FhabTxEJ8tLOLL6yhhC7wBvUSi3ZUwuVgtkHmlh7RINNX2_drG3KNb4z8l3tmPKzYmGb2EtXS9FbqKa797hyZSmN9tP5z8w7Chix5HstyM6u9av1T5FndwsTnL9FYoQWS19qKfE-0lb6WU26cojjntlslkKluCePJs9LHqfNctSAxHl3nx4m_XEuCwMKPOp4yQP4NkzPIgdTEBJ4mL1ZRh2GGb4mVVMnVAKC6aROrJTcvmrIBjb9PcqYWgX7X0IJfy3xFtvKcw6Ob9jHZORfa5Qn7eWn05MgVzAGRQbmKF6csxTMiy7-isKtyc'></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker Club</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0e14; color: #e8e8e8;
+    user-select: none;
+}
 
-        /* FLEXIBLES GRID SYSTEM */
-        .game-grid {
-            flex: 1; display: grid; min-height: 0; overflow: hidden;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
-            grid-template-rows: 1fr 1.5fr 1fr;
-            grid-template-areas: "p2 p3 p4" "p1 table p5" "empty p0 empty2";
-            padding: 8px; gap: 8px; align-items: center; justify-items: center;
-            width: 100%; max-width: 100vw;
-        }
+/* ── Setup Screen ─────────────────────────────────────────────────────────── */
+#screen-setup {
+    display: flex; flex-direction: column;
+    height: 100vh; justify-content: center; align-items: center;
+    background: radial-gradient(ellipse at 50% 30%, #1a2a3a 0%, #080c12 100%);
+    padding: 20px;
+}
+.setup-card {
+    background: linear-gradient(145deg, #141c28, #0f1620);
+    border: 1px solid #2a3a50; border-radius: 20px;
+    padding: 40px; text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05);
+    max-width: 480px; width: 100%;
+}
+.setup-card h1 {
+    font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; letter-spacing: 4px;
+    background: linear-gradient(135deg, #f5c842, #e8952a);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+}
+.setup-card .subtitle { color: #5a7a9a; font-size: 0.85rem; letter-spacing: 2px; margin-bottom: 30px; }
+.setup-input {
+    width: 100%; padding: 14px 18px; font-size: 1.1rem;
+    background: #0c1520; border: 1px solid #2a3a50; border-radius: 12px;
+    color: #e8e8e8; outline: none; margin-bottom: 16px;
+    transition: border-color 0.2s;
+}
+.setup-input:focus { border-color: #f5c842; }
+.btn-primary {
+    width: 100%; padding: 14px; font-size: 1rem; font-weight: 700;
+    letter-spacing: 2px; border: none; border-radius: 12px; cursor: pointer;
+    background: linear-gradient(135deg, #f5c842, #e8952a);
+    color: #0a0e14; transition: opacity 0.2s, transform 0.1s;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
 
-        .poker-table {
-            grid-area: table; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden;
-            background: radial-gradient(circle, #27ae60 0%, #1a472a 100%);
-            border: 1.5vw solid #3e2723; border-radius: 200px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            position: relative;
-        }
+/* Lobby */
+#lobby-box {
+    display: none; margin-top: 20px;
+    background: linear-gradient(145deg, #141c28, #0f1620);
+    border: 1px solid #2a3a50; border-radius: 20px;
+    padding: 30px; text-align: center; min-width: 320px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+}
+#lobby-status { color: #f5c842; font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; }
+#lobby-list { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+#lobby-list div { padding: 6px 0; border-bottom: 1px solid #1e2d3d; color: #a0b8d0; font-size: 0.95rem; }
+#lobby-list div:last-child { border-bottom: none; }
+.settings-row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+.settings-row label { color: #5a7a9a; font-size: 0.8rem; letter-spacing: 1px; }
+.settings-row input {
+    width: 70px; padding: 8px; background: #0c1520;
+    border: 1px solid #2a3a50; border-radius: 8px; color: #e8e8e8;
+    font-size: 0.9rem; text-align: center; outline: none;
+}
 
-        .player-box {
-            width: 90%; max-width: 220px; background: rgba(15, 15, 15, 0.95);
-            padding: 0.8vw; border-radius: 15px; border: 4px solid #455a64;
-            text-align: center; transition: 0.3s;
-            font-size: clamp(0.6rem, 1vw, 0.9rem); overflow: hidden;
-        }
-        .is-turn { border-color: #f1c40f; box-shadow: 0 0 20px #f1c40f; transform: scale(1.05); }
-        .folded { opacity: 0.3; filter: grayscale(1); }
+/* ── Game Screen ──────────────────────────────────────────────────────────── */
+#screen-game {
+    display: none; flex-direction: column;
+    height: 100vh; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 50%, #0d1520 0%, #060a0f 100%);
+}
 
-        .pos0 { grid-area: p0; } .pos1 { grid-area: p1; } .pos2 { grid-area: p2; }
-        .pos3 { grid-area: p3; } .pos4 { grid-area: p4; } .pos5 { grid-area: p5; }
+/* Top HUD */
+#hud {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 16px; flex-shrink: 0;
+    background: linear-gradient(to bottom, rgba(5,8,14,0.95), transparent);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    min-height: 44px;
+}
+#hud-hand { font-size: 0.7rem; color: #3a5a7a; letter-spacing: 2px; font-weight: 600; }
+#hud-phase {
+    font-size: 0.75rem; font-weight: 800; letter-spacing: 3px;
+    padding: 4px 12px; border-radius: 20px;
+    background: rgba(245,200,66,0.12); color: #f5c842; border: 1px solid rgba(245,200,66,0.25);
+}
+#hud-action {
+    font-size: 0.8rem; color: #a0b8d0; max-width: 45%;
+    text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
-        .pot-text { font-size: 2.5vw; color: #ffca28; margin-bottom: 10px; font-weight: bold; text-shadow: 2px 2px 4px black; }
-        .board { display: flex; gap: 0.8vw; flex-wrap: wrap; justify-content: center; }
+/* Grid */
+.game-grid {
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,2fr) minmax(0,1fr);
+    grid-template-rows: 1fr 1.6fr 1fr;
+    grid-template-areas: "p2 p3 p4" "p1 table p5" "empty p0 empty2";
+    padding: 6px; gap: 6px;
+    align-items: center; justify-items: center;
+}
+.pos0 { grid-area: p0; } .pos1 { grid-area: p1; } .pos2 { grid-area: p2; }
+.pos3 { grid-area: p3; } .pos4 { grid-area: p4; } .pos5 { grid-area: p5; }
 
-        /* --- NEUES KARTEN DESIGN (START) --- */
-        .card {
-            background: #fcfcfc; /* Helles Off-White für die Vorderseite */
-            color: #212121;      /* Standard Schwarz (für Pik) */
-            border-radius: 10px; /* Etwas rundere Ecken */
-            border: 1px solid #ccc; /* Subtiler Rand */
-            width: 5vw; max-width: 75px; min-width: 45px;
-            height: 7.5vw; max-height: 110px; min-height: 65px;
-            display: inline-flex; align-items: center; justify-content: center;
-            font-weight: 900;    /* Extra Fett */
-            font-size: 3.5vw;    /* Sehr große Schrift */
-            line-height: 1;      /* Enger Zeilenabstand */
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-        }
-        @media (min-width: 1200px) { .card { font-size: 42px; } }
+/* Player Box */
+.player-box {
+    width: 95%; max-width: 200px;
+    background: linear-gradient(145deg, #111922, #0c1318);
+    border: 1.5px solid #1e2e3e; border-radius: 14px;
+    padding: clamp(5px, 0.8vw, 12px);
+    text-align: center; transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+    position: relative; overflow: hidden;
+}
+.player-box::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 60%);
+    pointer-events: none;
+}
+.player-box.is-turn {
+    border-color: #f5c842;
+    box-shadow: 0 0 0 1px rgba(245,200,66,0.4), 0 0 20px rgba(245,200,66,0.2);
+    transform: scale(1.04);
+}
+.player-box.folded { opacity: 0.25; filter: grayscale(0.8); }
+.player-box.is-allin { border-color: #e8402a; box-shadow: 0 0 12px rgba(232,64,42,0.4); }
 
-        /* Farben gemäß Vorlage */
-        .red { color: #c62828; }   /* Herz & Karo (Rot) */
-        .green { color: #2e7d32; } /* Kreuz (Grün) */
-        
-        /* Kartenrückseite im Burgunder-Stil */
-        .card-back { 
-            background: linear-gradient(135deg, #8b1214 0%, #6d0c0e 100%); /* Tiefes Rot/Burgunder */
-            border: 2px solid #a02325; /* Hellerer roter Rand */
-        }
-        /* --- NEUES KARTEN DESIGN (ENDE) --- */
+.pbox-name {
+    font-size: clamp(0.6rem, 0.9vw, 0.85rem); font-weight: 700; letter-spacing: 0.5px;
+    color: #c8dae8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 4px;
+}
+.pbox-role {
+    position: absolute; top: 4px; right: 6px;
+    font-size: 0.55rem; font-weight: 800; letter-spacing: 1px;
+    color: #0a0e14; padding: 1px 5px; border-radius: 4px;
+}
+.role-D  { background: #b0b0b0; }
+.role-SB { background: #e8952a; }
+.role-BB { background: #3a8ae8; }
+.role-DSB { background: linear-gradient(90deg, #b0b0b0, #e8952a); }
+.pbox-stack {
+    font-size: clamp(0.75rem, 1.1vw, 1rem); font-weight: 800;
+    color: #4ad87a; margin: 2px 0 4px;
+}
+.pbox-cards { display: flex; justify-content: center; gap: 3px; margin: 4px 0; }
+.pbox-action {
+    font-size: clamp(0.5rem, 0.7vw, 0.7rem); font-weight: 700; letter-spacing: 0.5px;
+    min-height: 14px; color: #ffd54f;
+}
+.pbox-bet {
+    font-size: clamp(0.5rem, 0.65vw, 0.65rem); color: #5a7a9a;
+    min-height: 12px;
+}
+.winner-glow { animation: winPulse 0.6s ease-in-out 3; }
+@keyframes winPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(74,216,122,0); }
+    50% { box-shadow: 0 0 0 6px rgba(74,216,122,0.5), 0 0 30px rgba(74,216,122,0.3); }
+}
 
-        #controls {
-            background: #111; padding: 8px 15px; display: flex; justify-content: center; align-items: center; gap: 8px;
-            border-top: 4px solid #ffa000; flex-wrap: nowrap; z-index: 1000; flex-shrink: 0;
-        }
-        button { padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; border: none; color: white; }
-        .btn-fold { background: #b71c1c; } .btn-call { background: #1976d2; }
-        .btn-raise { background: #e65100; } .btn-allin { background: #6a1b9a; }
-        input[type=number] { width: 80px; font-size: 1rem; padding: 5px; border-radius: 5px; border: none; }
+/* ── Poker Table ──────────────────────────────────────────────────────────── */
+.poker-table {
+    grid-area: table; width: 100%; height: 100%;
+    min-width: 0; min-height: 0; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 45%, #2d8a55 0%, #1a5c38 55%, #0f3a22 100%);
+    border: clamp(6px, 1.2vw, 18px) solid #1a0e08;
+    outline: clamp(3px, 0.4vw, 6px) solid #3a2010;
+    border-radius: 9999px;
+    box-shadow:
+        0 0 0 clamp(2px,0.3vw,4px) #4a3020,
+        inset 0 0 60px rgba(0,0,0,0.4),
+        0 20px 60px rgba(0,0,0,0.8);
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    position: relative; gap: 8px;
+}
+.table-felt-lines {
+    position: absolute; inset: 5%; border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.05); pointer-events: none;
+}
 
-        #reenter-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 2000;
-        }
-    </style>
+/* Pot display */
+.pot-area { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pot-label { font-size: clamp(0.5rem, 0.7vw, 0.7rem); color: rgba(255,255,255,0.4); letter-spacing: 2px; }
+.pot-amount {
+    font-size: clamp(1rem, 2vw, 2rem); font-weight: 900; letter-spacing: 1px;
+    color: #f5c842; text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+.side-pots-display {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+}
+.side-pot-chip {
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(245,200,66,0.3);
+    border-radius: 20px; padding: 2px 10px;
+    font-size: clamp(0.5rem, 0.65vw, 0.65rem); color: #f5c842;
+}
+
+/* Board cards */
+.board { display: flex; gap: clamp(3px,0.5vw,8px); align-items: center; justify-content: center; flex-wrap: nowrap; }
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.card {
+    background: #f8f4ef; color: #1a1a1a;
+    border-radius: clamp(4px,0.5vw,8px);
+    border: 1px solid #d4c8b8;
+    width: clamp(28px,4.5vw,62px);
+    height: clamp(40px,6.5vw,90px);
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-weight: 900; font-size: clamp(0.7rem, 2.5vw, 2rem);
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
+    position: relative;
+}
+.card .suit-corner {
+    position: absolute; top: 2px; left: 4px;
+    font-size: clamp(0.4rem, 0.8vw, 0.65rem); line-height: 1;
+}
+.card.red  { color: #c0392b; }
+.card.blue { color: #2471c8; }
+/* Spades stay default dark */
+
+.card-back {
+    background: linear-gradient(135deg, #8b1a1c 0%, #5c1012 100%);
+    border: 1px solid #a02020;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.card-back::after {
+    content: '';
+    position: absolute; inset: 3px;
+    border-radius: clamp(2px,0.3vw,5px);
+    border: 1px solid rgba(255,255,255,0.12);
+    background: repeating-linear-gradient(
+        45deg, transparent, transparent 3px,
+        rgba(255,255,255,0.03) 3px, rgba(255,255,255,0.03) 4px
+    );
+}
+
+/* Board card reveal animation */
+.card-reveal { animation: cardFlip 0.35s ease-out; }
+@keyframes cardFlip {
+    from { transform: scaleX(0); opacity: 0; }
+    to   { transform: scaleX(1); opacity: 1; }
+}
+
+/* ── Controls ─────────────────────────────────────────────────────────────── */
+#controls {
+    flex-shrink: 0; display: flex;
+    align-items: center; justify-content: center; gap: 8px;
+    padding: 8px 16px;
+    background: linear-gradient(to top, rgba(5,8,14,0.98), rgba(10,14,20,0.9));
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.ctrl-btn {
+    height: 42px; padding: 0 clamp(10px,2vw,22px);
+    border: none; border-radius: 10px; cursor: pointer;
+    font-weight: 800; font-size: clamp(0.65rem, 1vw, 0.85rem);
+    letter-spacing: 1px; transition: filter 0.15s, transform 0.1s;
+    white-space: nowrap; flex-shrink: 0;
+}
+.ctrl-btn:disabled { filter: brightness(0.3); cursor: not-allowed; transform: none !important; }
+.ctrl-btn:not(:disabled):hover { filter: brightness(1.15); transform: translateY(-2px); }
+.ctrl-btn:not(:disabled):active { transform: translateY(0); filter: brightness(0.95); }
+.btn-fold  { background: linear-gradient(135deg, #c0392b, #8b1a1a); color: #fff; }
+.btn-check { background: linear-gradient(135deg, #2471c8, #1a4d8a); color: #fff; }
+.btn-raise { background: linear-gradient(135deg, #e8952a, #b56820); color: #fff; }
+.btn-allin { background: linear-gradient(135deg, #8e24c8, #5c1a8a); color: #fff; }
+.raise-group { display: flex; align-items: center; gap: 4px; }
+.raise-group input {
+    width: clamp(50px,6vw,80px); height: 42px; padding: 0 8px;
+    background: #0c1520; border: 1px solid #2a3a50; border-radius: 10px;
+    color: #e8e8e8; font-size: 0.9rem; text-align: center; outline: none;
+    flex-shrink: 0;
+}
+.raise-group input:focus { border-color: #f5c842; }
+.bet-slider-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.bet-slider {
+    width: clamp(60px,8vw,120px); accent-color: #e8952a;
+    height: 4px; cursor: pointer;
+}
+
+/* ── Overlays ─────────────────────────────────────────────────────────────── */
+#reenter-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    display: none; flex-direction: column; justify-content: center; align-items: center;
+    background: radial-gradient(ellipse at center, rgba(30,0,0,0.97) 0%, rgba(0,0,0,0.98) 100%);
+    gap: 24px;
+}
+#reenter-overlay h1 {
+    font-size: clamp(3rem, 10vw, 8rem); font-weight: 900; letter-spacing: 6px;
+    color: #e8402a; text-shadow: 0 0 40px rgba(232,64,42,0.6);
+    animation: bustedPulse 1.5s ease-in-out infinite;
+}
+@keyframes bustedPulse {
+    0%,100% { text-shadow: 0 0 40px rgba(232,64,42,0.6); }
+    50% { text-shadow: 0 0 80px rgba(232,64,42,1), 0 0 120px rgba(232,64,42,0.5); }
+}
+.btn-reenter {
+    padding: 18px 48px; font-size: 1.2rem; font-weight: 800; letter-spacing: 3px;
+    border: none; border-radius: 14px; cursor: pointer;
+    background: linear-gradient(135deg, #27ae60, #1a7a42); color: #fff;
+    transition: transform 0.15s, filter 0.15s;
+}
+.btn-reenter:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+/* ── Toast Notification ───────────────────────────────────────────────────── */
+#toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: rgba(10,14,20,0.95); border: 1px solid #2a3a50;
+    border-radius: 12px; padding: 10px 24px;
+    font-size: 0.85rem; color: #a0b8d0;
+    opacity: 0; transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none; z-index: 1000; white-space: nowrap;
+    max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Scrollbar hiding ────────────────────────────────────────────────────── */
+::-webkit-scrollbar { display: none; }
+</style>
 </head>
 <body>
 
-    <audio id="snd-shuffle" src="sounds/shuffle.mp3"></audio>
-    <audio id="snd-chips" src="sounds/chips.mp3"></audio>
-    <audio id="snd-win" src="sounds/win.mp3"></audio>
-    <audio id="snd-check" src="sounds/check.mp3"></audio>
-    <audio id="snd-allin" src="sounds/allin.mp3"></audio>
+<audio id="snd-shuffle" src="sounds/shuffle.mp3"></audio>
+<audio id="snd-chips"   src="sounds/chips.mp3"></audio>
+<audio id="snd-win"     src="sounds/win.mp3"></audio>
+<audio id="snd-check"   src="sounds/check.mp3"></audio>
+<audio id="snd-allin"   src="sounds/allin.mp3"></audio>
 
-    <div id="reenter-overlay">
-        <h1 style="font-size: 10vw; color: #ff5252;">BUSTED!</h1>
-        <button onclick="socket.emit('reenter')" style="background:#2e7d32; color:white; padding: 20px 40px; font-size: 2rem; border-radius: 10px;">RE-ENTER</button>
+<!-- ── Busted Overlay ──────────────────────────────────────────────────────── -->
+<div id="reenter-overlay">
+    <h1>BUSTED</h1>
+    <div style="color:#5a7a9a; font-size:1rem; letter-spacing:2px;">You ran out of chips</div>
+    <button class="btn-reenter" onclick="socket.emit('reenter')">RE-ENTER</button>
+</div>
+
+<!-- ── Toast ───────────────────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<!-- ── Setup Screen ────────────────────────────────────────────────────────── -->
+<div id="screen-setup">
+    <div class="setup-card" id="join-box">
+        <h1>POKER CLUB</h1>
+        <div class="subtitle">NO LIMIT HOLD'EM</div>
+        <input class="setup-input" type="text" id="input-name" placeholder="Your name" autocomplete="off" onkeydown="if(event.key==='Enter')joinGame()">
+        <button class="btn-primary" onclick="joinGame()">JOIN LOBBY</button>
     </div>
 
-    <div id="screen-setup" style="display: flex; flex-direction: column; height: 100vh; justify-content: center; align-items: center; background: #1c2833; padding: 20px;">
-        <div id="join-box" style="padding: 4vw; background: #2c3e50; border-radius: 20px; text-align: center; box-shadow: 0 20px 50px black; max-width: 500px; width: 100%;">
-            <h1 style="color: #fbc02d; font-size: 3rem; margin-bottom: 20px;">POKER CLUB</h1>
-            <input type="text" id="input-name" placeholder="Dein Name" style="padding: 15px; font-size: 1.5rem; border-radius: 10px; border: none; width: 100%; margin-bottom: 20px;"><br>
-            <button class="btn-call" onclick="joinGame()" style="width: 100%; font-size: 1.5rem;">LOBBY BEITRETEN</button>
-        </div>
-
-        <div id="lobby-box" style="display:none; padding: 30px; background: #2c3e50; border-radius: 20px; text-align: center; margin-top: 20px; min-width: 300px; border: 2px solid #34495e;">
-            <h2 id="lobby-status" style="color:#fbc02d; font-size: 1.5rem;">Warten...</h2>
-            <div id="lobby-list" style="margin: 20px 0; font-size: 1.2rem; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;"></div>
-            <div id="host-ui" style="display:none; border-top: 1px solid #555; padding-top: 20px;">
-                <p>SB: <input type="number" id="sb" value="0.5" style="width:60px;"> BB: <input type="number" id="bb" value="1.0" style="width:60px;"></p>
-                <p>Stack: <input type="number" id="stack" value="100" style="width:100px;"></p>
-                <button style="background:#2e7d32; width: 100%; font-size: 1.2rem;" onclick="socket.emit('startGame')">SPIEL STARTEN</button>
+    <div id="lobby-box">
+        <div id="lobby-status">Waiting for players...</div>
+        <div id="lobby-list"></div>
+        <div id="host-ui" style="display:none;">
+            <div class="settings-row">
+                <label>SB</label><input type="number" id="sb" value="0.5" step="0.5" min="0.5">
+                <label>BB</label><input type="number" id="bb" value="1.0" step="0.5" min="1">
+                <label>STACK</label><input type="number" id="stack" value="100" step="10" min="10">
             </div>
+            <button class="btn-primary" onclick="applySettingsAndStart()">START GAME</button>
         </div>
     </div>
+</div>
 
-    <div id="screen-game" style="display:none; flex-direction: column; height: 100vh; overflow: hidden;">
-        <div id="game-info" style="text-align: center; font-size: 1.2rem; color: #fbc02d; padding: 6px 10px; font-weight: bold; flex-shrink: 0;"></div>
-        
-        <div class="game-grid">
-            <div id="slot-p2"></div> <div id="slot-p3"></div> <div id="slot-p4"></div>
-            <div id="slot-p1"></div>
-            <div class="poker-table">
-                <div class="pot-text" id="pot-ui">Pot: 0 BB</div>
-                <div id="board" class="board"></div>
+<!-- ── Game Screen ──────────────────────────────────────────────────────────── -->
+<div id="screen-game">
+    <!-- HUD Bar -->
+    <div id="hud">
+        <div id="hud-hand">HAND #1</div>
+        <div id="hud-phase">LOBBY</div>
+        <div id="hud-action"></div>
+    </div>
+
+    <!-- Table Grid -->
+    <div class="game-grid">
+        <div id="slot-p2"></div>
+        <div id="slot-p3"></div>
+        <div id="slot-p4"></div>
+        <div id="slot-p1"></div>
+
+        <!-- Felt Table -->
+        <div class="poker-table">
+            <div class="table-felt-lines"></div>
+            <div class="pot-area">
+                <div class="pot-label">TOTAL POT</div>
+                <div class="pot-amount" id="pot-ui">0 BB</div>
+                <div class="side-pots-display" id="side-pots-ui"></div>
             </div>
-            <div id="slot-p5"></div>
-            <div></div> <div id="slot-p0"></div> <div></div> 
+            <div id="board" class="board"></div>
         </div>
 
-        <div id="controls">
-            <button class="btn-fold" onclick="act('fold')">FOLD</button>
-            <button class="btn-call" id="btn-call" onclick="act('call')">CHECK</button>
-            <input type="number" id="raise-val" value="4">
-            <button class="btn-raise" onclick="act('raise')">RAISE</button>
-            <button class="btn-allin" onclick="act('allin')">ALL-IN</button>
-        </div>
+        <div id="slot-p5"></div>
+        <div></div>
+        <div id="slot-p0"></div>
+        <div></div>
     </div>
+
+    <!-- Controls -->
+    <div id="controls">
+        <button class="ctrl-btn btn-fold"  id="btn-fold"  onclick="act('fold')">FOLD</button>
+        <button class="ctrl-btn btn-check" id="btn-call"  onclick="act('call')">CHECK</button>
+        <div class="raise-group">
+            <div class="bet-slider-wrap">
+                <input type="range" class="bet-slider" id="raise-slider" min="2" max="200" step="0.5" oninput="syncSlider(this.value)">
+            </div>
+            <input type="number" id="raise-val" value="4" oninput="syncInput(this.value)">
+            <button class="ctrl-btn btn-raise" id="btn-raise" onclick="act('raise')">RAISE</button>
+        </div>
+        <button class="ctrl-btn btn-allin" id="btn-allin" onclick="act('allin')">ALL-IN</button>
+    </div>
+</div>
 
 <script>
-    const socket = io();
-    let myId = null;
-    let lastPhase = "";
-    let lastPotValue = 0;
-    let playerActions = {}; 
+// ── Socket & State ────────────────────────────────────────────────────────────
+const socket = io();
+let myId = null, lastPhase = '', lastPotValue = 0, playerActions = {};
+let currentState = null;
 
-    function playSound(id) {
-        const s = document.getElementById(id);
-        if (s) { s.currentTime = 0; s.play().catch(()=>{}); }
+// ── Sound ─────────────────────────────────────────────────────────────────────
+function playSound(id) {
+    const s = document.getElementById(id);
+    if (s) { s.currentTime = 0; s.play().catch(() => {}); }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Setup ─────────────────────────────────────────────────────────────────────
+function joinGame() {
+    const n = document.getElementById('input-name').value.trim();
+    if (!n) return;
+    const params = new URLSearchParams(document.location.search);
+    const master = params.get('master');
+    socket.emit('joinGame', { name: n, master });
+    document.getElementById('join-box').style.display = 'none';
+    document.getElementById('lobby-box').style.display = 'block';
+}
+
+function applySettingsAndStart() {
+    socket.emit('updateSettings', {
+        sb:       document.getElementById('sb').value,
+        bb:       document.getElementById('bb').value,
+        startStack: document.getElementById('stack').value,
+    });
+    socket.emit('startGame');
+}
+
+// ── Raise slider sync ─────────────────────────────────────────────────────────
+function syncSlider(v) { document.getElementById('raise-val').value = parseFloat(v).toFixed(1); }
+function syncInput(v)  { document.getElementById('raise-slider').value = v; }
+
+// ── Action ────────────────────────────────────────────────────────────────────
+function act(t) {
+    const btnCall = document.getElementById('btn-call');
+    if (t === 'allin') playSound('snd-allin');
+    else if (t === 'call') {
+        playSound(btnCall.textContent.includes('CHECK') ? 'snd-check' : 'snd-chips');
+    } else if (t === 'raise') playSound('snd-chips');
+    socket.emit('action', { type: t, amount: document.getElementById('raise-val').value });
+}
+
+// ── Cards ─────────────────────────────────────────────────────────────────────
+const SYMBOLS = { s: '♠', h: '♥', d: '♦', c: '♣' };
+
+function getCard(c, size = 'normal', animate = false) {
+    if (c === '??') return `<div class="card card-back ${animate?'card-reveal':''}"></div>`;
+    const suit = c.slice(-1), rank = c.slice(0, -1);
+    let cls = '';
+    if (suit === 'h' || suit === 'd') cls = 'red';
+    else if (suit === 'c') cls = 'blue';
+    return `<div class="card ${cls} ${animate?'card-reveal':''}">`
+        + `<span class="suit-corner">${SYMBOLS[suit]}</span>`
+        + `${rank}${SYMBOLS[suit]}`
+        + `</div>`;
+}
+
+// ── Role badge ────────────────────────────────────────────────────────────────
+function getRoleBadge(role) {
+    if (!role) return '';
+    const r = role.toUpperCase();
+    if (r === 'D/SB' || r.includes('DSB')) return `<span class="pbox-role role-DSB">D/SB</span>`;
+    if (r.includes('D'))  return `<span class="pbox-role role-D">D</span>`;
+    if (r.includes('SB')) return `<span class="pbox-role role-SB">SB</span>`;
+    if (r.includes('BB')) return `<span class="pbox-role role-BB">BB</span>`;
+    return '';
+}
+
+// ── Main state update ─────────────────────────────────────────────────────────
+socket.on('stateUpdate', (s) => {
+    currentState = s;
+    myId = s.me;
+    const isHost = s.hostId === myId;
+    const me = s.players.find(p => p.id === myId);
+
+    // Sounds
+    if (s.phase !== lastPhase && s.phase !== 'LOBBY') {
+        if (s.phase === 'PREFLOP') playSound('snd-shuffle');
+        if (s.phase === 'SHOWDOWN') playSound('snd-win');
+        lastPhase = s.phase;
     }
-
-    function joinGame() {
-        const n = document.getElementById('input-name').value;
-        if(n) {
-            let params = new URLSearchParams(document.location.search);
-            let master = params.get("master");
-            socket.emit('joinGame', { name: n, master: master });
-            document.getElementById('join-box').style.display = 'none';
-            document.getElementById('lobby-box').style.display = 'block';
-        }
+    if (s.pot > lastPotValue) {
+        const actor = s.players.find(p => p.lastAction && (p.lastAction.startsWith('Call') || p.lastAction.startsWith('Raise')));
+        if (actor) playSound('snd-chips');
+        lastPotValue = s.pot;
     }
-
-    function act(t) { 
-        const btnCall = document.getElementById('btn-call');
-        if (t === 'allin') playSound('snd-allin');
-        else if (t === 'call') {
-            if (btnCall.innerText === "CHECK") playSound('snd-check');
-            else playSound('snd-chips');
-        } else if (t === 'raise') playSound('snd-chips');
-        socket.emit('action', { type: t, amount: document.getElementById('raise-val').value });
-    }
-
-    // --- NEUE KARTEN LOGIK (FARBEN & RÜCKSEITE) ---
-    function getCard(c) {
-        // Rückseite: Kein '?' mehr, nur noch die Farbe
-        if(c === '??') return `<div class="card card-back"></div>`;
-        
-        const symbols = {s:'♠', h:'♥', d:'♦', c:'♣'};
-        const s = c.slice(-1); 
-        const r = c.slice(0, -1);
-        
-        // Farben zuweisen wie im Bild
-        let colorClass = ''; 
-        if (s === 'h' || s === 'd') colorClass = 'red';
-        else if (s === 'c') colorClass = 'green';
-        // Pik (s='s') bleibt Standard (schwarz/dunkelgrau)
-
-        return `<div class="card ${colorClass}">${r}${symbols[s]}</div>`;
-    }
-
-    socket.on('stateUpdate', (s) => {
-        myId = s.me;
-        const isHost = s.hostId === myId;
-        const me = s.players.find(p => p.id === myId);
-
-        if (s.phase !== lastPhase && s.phase !== 'LOBBY' && s.phase !== 'WAITING') {
-            playSound('snd-shuffle');
-            if (s.phase === 'SHOWDOWN') playSound('snd-win');
-            lastPhase = s.phase;
-        }
-        if (s.pot > lastPotValue) {
-            const lastActor = s.players.find(p => p.lastAction === "Call" || p.lastAction.includes("Raise"));
-            if (lastActor) playSound('snd-chips');
-            lastPotValue = s.pot;
-        }
-        s.players.forEach(p => {
-            if (p.lastAction && p.lastAction !== playerActions[p.id]) {
-                if (p.lastAction === "Check") playSound('snd-check');
-                if (p.lastAction === "ALL IN!") playSound('snd-allin');
-                playerActions[p.id] = p.lastAction;
-            }
-        });
-
-        if(s.phase === 'LOBBY') {
-            document.getElementById('host-ui').style.display = isHost ? 'block' : 'none';
-            document.getElementById('lobby-list').innerHTML = s.players.map(p => `<div>${p.baseName}</div>`).join('');
-        } else {
-            document.getElementById('screen-setup').style.display = 'none';
-            document.getElementById('screen-game').style.display = 'flex';
-        }
-
-        document.getElementById('reenter-overlay').style.display = (me && me.outOfChips) ? 'flex' : 'none';
-        document.getElementById('game-info').innerText = s.lastAction || "";
-        document.getElementById('pot-ui').innerText = `Pot: ${s.pot.toFixed(1)} BB`;
-        document.getElementById('board').innerHTML = s.board.map(getCard).join('');
-
-        const myTurn = s.players[s.currentTurn]?.id === myId && !s.allInShowdown;
-        document.querySelectorAll('#controls button, #controls input').forEach(function(el){
-            el.disabled = !myTurn;
-            el.style.opacity = myTurn ? '1' : '0';
-        });
-
-        if(me) {
-            const diff = s.currentCall - me.bet;
-            document.getElementById('btn-call').innerText = diff > 0 ? `CALL ${diff.toFixed(1)}` : "CHECK";
-        }
-
-        for(let i=0; i<6; i++) {
-            const slot = document.getElementById(`slot-p${i}`);
-            if(!slot) continue;
-            slot.innerHTML = '';
-            const p = s.players[i];
-            if(p && !p.outOfChips) {
-                const turn = s.currentTurn === i && !s.allInShowdown && s.phase !== 'SHOWDOWN';
-                slot.innerHTML = `
-                    <div class="player-box pos${i} ${turn?'is-turn':''} ${p.folded?'folded':''}">
-                        <div style="font-size:1.1rem; border-bottom:2px solid #555; padding-bottom:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.baseName} ${p.reentries>0?'(R'+p.reentries+')':''}</div>
-                        <div style="color:#2ecc71; font-size:1.3rem; font-weight:bold; margin-top:8px;">${p.stack.toFixed(1)} BB</div>
-                        <div style="margin-top:15px; display:flex; justify-content:center; gap:5px;">${p.cards.map(getCard).join('')}</div>
-                        <div style="font-size:0.8rem; color:#ffd54f; margin-top:8px; height: 20px;">${p.lastAction}</div>
-                    </div>
-                `;
-            }
+    s.players.forEach(p => {
+        if (p.lastAction && p.lastAction !== playerActions[p.id]) {
+            if (p.lastAction === 'Check') playSound('snd-check');
+            if (p.lastAction === 'ALL IN!') playSound('snd-allin');
+            playerActions[p.id] = p.lastAction;
         }
     });
+
+    // Screen switching
+    if (s.phase === 'LOBBY') {
+        document.getElementById('host-ui').style.display = isHost ? 'block' : 'none';
+        document.getElementById('lobby-status').textContent =
+            `${s.players.length} player${s.players.length !== 1 ? 's' : ''} in lobby`;
+        document.getElementById('lobby-list').innerHTML =
+            s.players.map((p, i) => `<div>${p.baseName}${i === 0 ? ' 👑' : ''}</div>`).join('');
+        return;
+    }
+
+    document.getElementById('screen-setup').style.display = 'none';
+    document.getElementById('screen-game').style.display = 'flex';
+    document.getElementById('reenter-overlay').style.display = (me && me.outOfChips) ? 'flex' : 'none';
+
+    // HUD
+    document.getElementById('hud-hand').textContent = `HAND #${s.handNumber || 1}`;
+    document.getElementById('hud-phase').textContent = s.allInShowdown ? 'ALL-IN' : (s.phase || 'LOBBY');
+    document.getElementById('hud-action').textContent = s.lastAction || '';
+
+    // Toast for winner
+    if (s.phase === 'SHOWDOWN' && s.lastAction && s.lastAction !== (window._lastToastMsg || '')) {
+        showToast(s.lastAction);
+        window._lastToastMsg = s.lastAction;
+    }
+
+    // Pot & side pots
+    document.getElementById('pot-ui').textContent = `${s.pot.toFixed(1)} BB`;
+    const spUI = document.getElementById('side-pots-ui');
+    if (s.sidePots && s.sidePots.length > 1) {
+        spUI.innerHTML = s.sidePots.map((sp, i) =>
+            `<div class="side-pot-chip">${i === 0 ? 'Main' : `Side ${i}`}: ${sp.amount.toFixed(1)}</div>`
+        ).join('');
+    } else { spUI.innerHTML = ''; }
+
+    // Board
+    const boardEl = document.getElementById('board');
+    const prevCount = boardEl.children.length;
+    boardEl.innerHTML = s.board.map((c, i) => getCard(c, 'board', i >= prevCount)).join('');
+
+    // Controls
+    const myTurn = s.players[s.currentTurn]?.id === myId && !s.allInShowdown;
+    ['btn-fold','btn-call','btn-raise','btn-allin','raise-val','raise-slider'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !myTurn;
+    });
+
+    if (me) {
+        const diff = s.currentCall - me.bet;
+        const callBtn = document.getElementById('btn-call');
+        callBtn.textContent = diff > 0 ? `CALL ${diff.toFixed(1)}` : 'CHECK';
+        callBtn.className = 'ctrl-btn ' + (diff > 0 ? 'btn-raise' : 'btn-check');
+
+        // Slider range: BB to all-in
+        const bb = s.settings?.bb || 1;
+        const maxRaise = me.stack + me.bet;
+        const minRaise = s.currentCall + bb;
+        const slider = document.getElementById('raise-slider');
+        slider.min = minRaise.toFixed(1);
+        slider.max = maxRaise.toFixed(1);
+        slider.step = bb;
+        if (parseFloat(slider.value) < minRaise) {
+            slider.value = minRaise.toFixed(1);
+            document.getElementById('raise-val').value = minRaise.toFixed(1);
+        }
+    }
+
+    // Player boxes
+    for (let i = 0; i < 6; i++) {
+        const slot = document.getElementById(`slot-p${i}`);
+        if (!slot) continue;
+        const p = s.players[i];
+        if (!p || p.outOfChips) { slot.innerHTML = ''; continue; }
+
+        const isTurn  = s.currentTurn === i && !s.allInShowdown && s.phase !== 'SHOWDOWN';
+        const isWinner = s.phase === 'SHOWDOWN' && (p.handWinnings || 0) > 0;
+        const classes = [
+            'player-box', `pos${i}`,
+            isTurn ? 'is-turn' : '',
+            p.folded ? 'folded' : '',
+            p.isAllIn && !p.folded ? 'is-allin' : '',
+            isWinner ? 'winner-glow' : '',
+        ].filter(Boolean).join(' ');
+
+        const betDisplay = p.bet > 0 ? `bet: ${p.bet.toFixed(1)}` : '';
+        const winDisplay = isWinner ? `+${(p.handWinnings).toFixed(1)} BB` : '';
+
+        slot.innerHTML = `
+            <div class="${classes}">
+                ${getRoleBadge(p.role)}
+                <div class="pbox-name">${p.baseName}${p.reentries > 0 ? ` <span style="color:#5a7a9a;font-size:0.7em">(R${p.reentries})</span>` : ''}</div>
+                <div class="pbox-stack">${isWinner ? `<span style="color:#4ad87a">${winDisplay}</span>` : `${p.stack.toFixed(1)} BB`}</div>
+                <div class="pbox-cards">${p.cards.map(c => getCard(c)).join('')}</div>
+                <div class="pbox-action">${p.lastAction || ''}</div>
+                <div class="pbox-bet">${betDisplay}</div>
+            </div>`;
+    }
+});
 </script>
 </body>
 </html>
