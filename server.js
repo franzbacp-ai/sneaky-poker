@@ -155,7 +155,7 @@ function broadcastState(g) {
             if (other.id !== p.id && !showAll && p.master !== true && p.master !== 'true')
                 other.cards = ['??', '??'];
         });
-        if (p.master === true || p.master === 'true') copy.board = g.deck._communityDeck.slice();
+        if (p.master === true || p.master === 'true') copy.masterBoard = g.deck._communityDeck.slice();
         copy.players.forEach(pl => { delete pl.token; });
         copy.queue.forEach(pl => { delete pl.token; });
         io.to(p.id).emit('stateUpdate', { ...copy, me: p.id, queued: isQueued || false });
