@@ -59,9 +59,17 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-u
 #lang-btn{background:rgba(255,255,255,.06);border:1px solid #2a3a50;border-radius:6px;
   color:#5a7a9a;font-size:.65rem;padding:3px 7px;cursor:pointer;letter-spacing:1px}
 #lang-btn:hover{border-color:#f5c842;color:#f5c842}
+.btn-hud-leave{background:transparent;border:1px solid #3a2020;border-radius:6px;
+  color:#c0392b;font-size:.65rem;padding:3px 8px;cursor:pointer;letter-spacing:1px;
+  transition:background-color .2s,color .2s;flex-shrink:0}
+.btn-hud-leave:hover{background:#c0392b;color:#fff}
 
 /* Table area */
 #table-area{flex:1;min-height:0;position:relative}
+
+/* Turn timer bar */
+#turn-timer-bar{height:3px;background:rgba(255,255,255,.06);flex-shrink:0;display:none;overflow:hidden}
+#turn-timer-fill{height:100%;width:100%;background:linear-gradient(90deg,#e8402a,#f5c842);transform-origin:left}
 
 /* Lobby extras */
 #lobby-code{font-family:monospace;font-size:1.3rem;font-weight:900;letter-spacing:6px;
@@ -70,7 +78,7 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-u
 #lobby-code:hover{border-color:#f5c842}
 .btn-leave{width:100%;padding:10px;font-size:.8rem;font-weight:700;letter-spacing:2px;
   border:1px solid #3a2020;border-radius:10px;cursor:pointer;
-  background:transparent;color:#c0392b;margin-top:8px;transition:background .2s,color .2s}
+  background:transparent;color:#c0392b;margin-top:8px;transition:background-color .2s,color .2s}
 .btn-leave:hover{background:#c0392b;color:#fff}
 
 /* Elliptical felt table */
@@ -127,12 +135,14 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-u
 .pbox-cards{display:flex;justify-content:center;gap:2px;margin:3px 0}
 .pbox-action{font-size:clamp(.48rem,.65vw,.65rem);font-weight:700;letter-spacing:.5px;
   min-height:13px;color:#ffd54f}
+.reentry-badge{font-size:clamp(.4rem,.55vw,.52rem);font-weight:700;letter-spacing:.5px;
+  color:#e8952a;margin-top:2px;opacity:.85}
 
 /* Chip stack – vertical tower with overlapping discs (bottom chip first, each overlaps prev) */
 .chip-stack{display:flex;flex-direction:column-reverse;align-items:center;min-height:6px;position:absolute;pointer-events:none}
 .chip{width:clamp(12px,1.6vw,20px);height:clamp(5px,.65vw,8px);border-radius:40%;
   border-top:1px solid rgba(255,255,255,.35);border-bottom:1px solid rgba(0,0,0,.4);
-  box-shadow:0 1px 3px rgba(0,0,0,.5);margin-bottom:clamp(-3px,-.4vw,-4px)}
+  box-shadow:0 1px 3px rgba(0,0,0,.5);margin-bottom:clamp(-4px,-.55vw,-6px)}
 .chip-stack .chip:first-child{margin-bottom:0}
 .chip-red{background:#c0392b}.chip-blue{background:#2471c8}
 .chip-green{background:#27ae60}.chip-gold{background:#f5c842}
@@ -164,28 +174,38 @@ html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-u
 .card-reveal{animation:cardFlip .35s ease-out}
 @keyframes cardFlip{from{transform:scaleX(0);opacity:0}to{transform:scaleX(1);opacity:1}}
 
-/* ── Controls ────────────────────────────────────────────────────────────── */
-#controls{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;
-  padding:8px 14px;
+/* ── Controls (two rows) ──────────────────────────────────────────────────── */
+#controls{flex-shrink:0;display:flex;flex-direction:column;gap:0;
   background:linear-gradient(to top,rgba(5,8,14,.98),rgba(10,14,20,.9));
-  border-top:1px solid rgba(255,255,255,.05)}
+  border-top:1px solid rgba(255,255,255,.05);padding:8px 14px 10px}
+#controls-top{display:flex;gap:8px}
+#controls-top .ctrl-btn{flex:1;height:46px;font-size:clamp(.7rem,1.1vw,.9rem)}
+#controls-bottom{display:flex;align-items:center;gap:6px;margin-top:7px}
 .ctrl-btn{height:40px;padding:0 clamp(8px,1.8vw,20px);border:none;border-radius:9px;
   cursor:pointer;font-weight:800;font-size:clamp(.6rem,.9vw,.8rem);letter-spacing:1px;
   transition:filter .15s,transform .1s;white-space:nowrap;flex-shrink:0}
-.ctrl-btn:disabled{filter:brightness(.25);cursor:not-allowed;transform:none!important}
+.ctrl-btn:disabled{filter:brightness(.22);cursor:not-allowed;transform:none!important}
 .ctrl-btn:not(:disabled):hover{filter:brightness(1.15);transform:translateY(-2px)}
 .ctrl-btn:not(:disabled):active{transform:translateY(0);filter:brightness(.95)}
 .btn-fold{background:linear-gradient(135deg,#c0392b,#8b1a1a);color:#fff}
 .btn-check{background:linear-gradient(135deg,#2471c8,#1a4d8a);color:#fff}
 .btn-raise{background:linear-gradient(135deg,#e8952a,#b56820);color:#fff}
 .btn-allin{background:linear-gradient(135deg,#8e24c8,#5c1a8a);color:#fff}
-.raise-group{display:flex;align-items:center;gap:4px}
-.raise-group input[type=number]{width:clamp(48px,5.5vw,74px);height:40px;padding:0 6px;
+/* Preset pot-fraction buttons */
+.raise-presets{display:flex;gap:3px;flex-shrink:0}
+.preset-btn{height:40px;padding:0 clamp(5px,1vw,12px);border:1px solid #2a3a50;
+  border-radius:7px;cursor:pointer;background:#0c1520;color:#a0b8d0;
+  font-size:clamp(.55rem,.75vw,.7rem);font-weight:700;letter-spacing:.5px;
+  transition:border-color .15s,color .15s,background-color .15s;white-space:nowrap;flex-shrink:0}
+.preset-btn:hover:not(:disabled){border-color:#e8952a;color:#e8952a;background:#1a1208}
+.preset-btn:disabled{opacity:.25;cursor:not-allowed}
+/* Slider + raise value */
+.bet-slider{flex:1;min-width:40px;accent-color:#e8952a;height:4px;cursor:pointer}
+#raise-val{width:clamp(52px,5.5vw,74px);height:40px;padding:0 6px;
   background:#0c1520;border:1px solid #2a3a50;border-radius:9px;
   color:#e8e8e8;font-size:.85rem;text-align:center;outline:none;flex-shrink:0}
-.raise-group input[type=number]:focus{border-color:#f5c842}
-.bet-slider-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
-.bet-slider{width:clamp(55px,7vw,110px);accent-color:#e8952a;height:4px;cursor:pointer}
+#raise-val:focus{border-color:#f5c842}
+#controls-bottom .btn-raise{padding:0 clamp(8px,1.5vw,18px)}
 
 /* ── Overlays ────────────────────────────────────────────────────────────── */
 #reenter-overlay{position:fixed;inset:0;z-index:9999;display:none;

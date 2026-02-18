@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Poker Club</title>
 <!-- Open Graph / Discord preview -->
-<meta name="description" content="No Limit Hold'em – play with friends">
-<meta property="og:title" content="Poker Club – NL Hold'em">
+<meta name="description" content="No Limit Hold'em - play with friends">
+<meta property="og:title" content="Poker Club - NL Hold'em">
 <meta property="og:description" content="Join the table and play No Limit Texas Hold'em">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/preview.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Poker Club – NL Hold'em">
+<meta name="twitter:title" content="Poker Club - NL Hold'em">
 <meta name="twitter:description" content="Join the table and play No Limit Texas Hold'em">
 <link rel="stylesheet" href="/style.css">
 <script src="/socket.io/socket.io.js"></script>
@@ -26,9 +26,9 @@
 <audio id="snd-allin"   src="sounds/allin.mp3"></audio>
 
 <div id="reenter-overlay">
-  <h1>BUSTED</h1>
-  <div style="color:#5a7a9a;font-size:.95rem;letter-spacing:2px">You ran out of chips</div>
-  <button class="btn-reenter" onclick="socket.emit('reenter')">RE-ENTER</button>
+  <h1 id="busted-title">BUSTED</h1>
+  <div id="busted-sub" style="color:#5a7a9a;font-size:.95rem;letter-spacing:2px">You ran out of chips</div>
+  <button class="btn-reenter" id="btn-reenter" onclick="socket.emit('reenter')">RE-ENTER</button>
 </div>
 <div id="toast"></div>
 
@@ -41,8 +41,8 @@
       autocomplete="off" onkeydown="if(event.key==='Enter')joinOrCreate()">
     <input class="setup-input" id="input-lobby-id" type="text"
       placeholder="Lobby ID (leave blank to create new)" autocomplete="off">
-    <button class="btn-primary" onclick="joinOrCreate()">PLAY</button>
-    <div id="invite-box" class="invite-box" onclick="copyInvite()">Click to copy invite link</div>
+    <button class="btn-primary" id="btn-play" onclick="joinOrCreate()">PLAY</button>
+    <div id="invite-box" class="invite-box" onclick="copyInvite()" id="invite-box">Click to copy invite link</div>
   </div>
   <div id="lobby-panel">
     <div id="lobby-status">Waiting for players...</div>
@@ -54,9 +54,9 @@
         <label>BB</label><input type="number" id="bb" value="1.0" step="0.5" min="1">
         <label>STACK</label><input type="number" id="stack" value="100" step="10" min="10">
       </div>
-      <button class="btn-primary" onclick="applySettingsAndStart()">START GAME</button>
+      <button class="btn-primary" id="btn-start" onclick="applySettingsAndStart()">START GAME</button>
     </div>
-    <button class="btn-leave" onclick="leaveLobby()">LEAVE LOBBY</button>
+    <button class="btn-leave" onclick="leaveLobby()" id="btn-leave-lobby">LEAVE LOBBY</button>
   </div>
 </div>
 
@@ -67,14 +67,16 @@
     <div id="hud-phase">LOBBY</div>
     <div id="hud-right">
       <div id="hud-action"></div>
+      <button class="btn-hud-leave" onclick="leaveLobby()" id="btn-leave-game">LEAVE</button>
       <button id="lang-btn" onclick="toggleLang()">DE</button>
     </div>
   </div>
+  <div id="turn-timer-bar"><div id="turn-timer-fill"></div></div>
   <div id="table-area">
     <div class="poker-table">
       <div class="table-felt-line"></div>
       <div class="pot-area">
-        <div class="pot-label">TOTAL POT</div>
+        <div class="pot-label" id="pot-label">TOTAL POT</div>
         <div class="pot-amount" id="pot-ui">0 BB</div>
         <div class="side-pots-display" id="side-pots-ui"></div>
       </div>
@@ -83,27 +85,59 @@
     <div id="seats-container"></div>
   </div>
   <div id="controls">
-    <button class="ctrl-btn btn-fold"  id="btn-fold"  onclick="act('fold')">FOLD</button>
-    <button class="ctrl-btn btn-check" id="btn-call"  onclick="act('call')">CHECK</button>
-    <div class="raise-group">
-      <div class="bet-slider-wrap">
-        <input type="range" class="bet-slider" id="raise-slider"
-          min="2" max="200" step="0.5" oninput="syncSlider(this.value)">
+    <div id="controls-top">
+      <button class="ctrl-btn btn-fold"  id="btn-fold"  onclick="act('fold')">FOLD</button>
+      <button class="ctrl-btn btn-check" id="btn-call"  onclick="act('call')">CHECK</button>
+    </div>
+    <div id="controls-bottom">
+      <div class="raise-presets">
+        <button class="preset-btn" onclick="setRaisePreset(0.5)">1/2</button>
+        <button class="preset-btn" onclick="setRaisePreset(0.75)">3/4</button>
+        <button class="preset-btn" onclick="setRaisePreset(1)">POT</button>
       </div>
+      <input type="range" class="bet-slider" id="raise-slider"
+        min="2" max="200" step="0.5" oninput="syncSlider(this.value)">
       <input type="number" id="raise-val" value="4" oninput="syncInput(this.value)">
       <button class="ctrl-btn btn-raise" id="btn-raise" onclick="act('raise')">RAISE</button>
+      <button class="ctrl-btn btn-allin" id="btn-allin" onclick="act('allin')">ALL-IN</button>
     </div>
-    <button class="ctrl-btn btn-allin" id="btn-allin" onclick="act('allin')">ALL-IN</button>
   </div>
 </div>
 
 <script>
-// ── State ─────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────
 const socket = io();
 let myId = null, lastPhase = '', lastPotValue = 0;
 let playerLastActions = {}, _lastToastMsg = '';
 const params = new URLSearchParams(location.search);
 const MASTER = params.get('master');
+let _minRaise = 2, _maxRaise = 200, _potSize = 0, _myTurnActive = false;
+
+// ── Turn timer ────────────────────────────────────────────────────────────
+let _timerInterval = null, _timerEnd = 0;
+function startTurnTimer(durationMs) {
+  clearInterval(_timerInterval);
+  _timerEnd = Date.now() + durationMs;
+  const fill = document.getElementById('turn-timer-fill');
+  const bar  = document.getElementById('turn-timer-bar');
+  bar.style.display = 'block';
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  // Force reflow then animate
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fill.style.transition = `width ${durationMs}ms linear`;
+    fill.style.width = '0%';
+  }));
+  _timerInterval = setInterval(() => {
+    const rem = Math.max(0, _timerEnd - Date.now());
+    if (rem <= 0) { clearInterval(_timerInterval); bar.style.display = 'none'; }
+  }, 250);
+}
+function stopTurnTimer() {
+  clearInterval(_timerInterval);
+  const bar = document.getElementById('turn-timer-bar');
+  if (bar) bar.style.display = 'none';
+}
 
 // ── Language toggle ───────────────────────────────────────────────────────────
 let _lastState = null;
@@ -138,7 +172,7 @@ function showInviteBox(lobbyId) {
   box.textContent = _inviteUrl;
 }
 function copyInvite() {
-  navigator.clipboard.writeText(_inviteUrl).then(() => showToast('Copied! \uD83D\uDCCB'));
+  navigator.clipboard.writeText(_inviteUrl).then(() => showToast(t('copied')));
 }
 function copyLobbyCode() {
   const code = document.getElementById('lobby-code').textContent;
@@ -189,7 +223,7 @@ socket.on('joined', d => {
   localStorage.setItem('pokerLobby', d.lobbyId);
   document.getElementById('join-card').style.display = 'none';
   document.getElementById('lobby-panel').style.display = 'block';
-  if (d.queued) showToast('Joined – you will play from next hand');
+  if (d.queued) showToast(t('joinedQueued'));
 });
 socket.on('reconnected', d => {
   localStorage.setItem('pokerLobby', d.lobbyId);
@@ -208,16 +242,26 @@ function applySettingsAndStart() {
   socket.emit('startGame');
 }
 
-// ── Controls ──────────────────────────────────────────────────────────────────
+// ── Controls ───────────────────────────────────────────────────────────
 function syncSlider(v) { document.getElementById('raise-val').value = parseFloat(v).toFixed(1); }
 function syncInput(v)  { document.getElementById('raise-slider').value = v; }
+function setRaisePreset(fraction) {
+  // fraction: 0.5=half-pot, 0.75=3/4-pot, 1=pot
+  const amount = Math.min(_maxRaise, Math.max(_minRaise, Math.round(_potSize * fraction * 2) / 2));
+  document.getElementById('raise-slider').value = amount;
+  syncSlider(amount);
+}
 function act(type) {
+  stopTurnTimer();
   if (type === 'allin') playSound('snd-allin');
   else if (type === 'call') {
     const lbl = document.getElementById('btn-call').textContent;
     playSound((lbl === 'CHECK' || lbl === 'CHECKEN') ? 'snd-check' : 'snd-chips');
   } else if (type === 'raise') playSound('snd-chips');
   socket.emit('action', { type, amount: document.getElementById('raise-val').value });
+  // Reset slider to min raise after acting
+  const sl = document.getElementById('raise-slider');
+  sl.value = _minRaise; syncSlider(_minRaise);
 }
 
 // ── Card HTML ─────────────────────────────────────────────────────────────────
@@ -335,14 +379,17 @@ function renderSeats(s) {
       : '<div class="card card-back"></div><div class="card card-back"></div>';
     const winLine = p.handWinnings > 0
       ? `<div style="font-size:.52rem;color:#4ad87a;font-weight:800">+${p.handWinnings.toFixed(1)}</div>` : '';
+    const reentryBadge = (p.reentries > 0)
+      ? `<div class="reentry-badge">${p.reentries}x ${t('reentries')}</div>` : '';
 
     seat.innerHTML = `
       <div class="${boxCls}" id="pb${p.id}">
-        <div class="pbox-name">${p.baseName}${isMe ? ' (you)' : ''}</div>
-        <div class="pbox-stack">${p.outOfChips ? 'BUSTED' : p.stack.toFixed(1)+' BB'}</div>
+        <div class="pbox-name">${p.baseName}${isMe ? ' '+t('you') : ''}</div>
+        <div class="pbox-stack">${p.outOfChips ? t('busted') : p.stack.toFixed(1)+' BB'}</div>
         <div class="pbox-cards">${cards}</div>
         <div class="pbox-action">${p.lastAction||''}</div>
         ${winLine}
+        ${reentryBadge}
       </div>
       ${p.queued ? `<div class="queued-badge">${t('queuedBadge')}</div>` : ''}`;
 
@@ -416,15 +463,21 @@ function applyState(s) {
   // Lobby phase
   if (s.phase === 'LOBBY') {
     document.getElementById('host-ui').style.display = isHost ? 'block' : 'none';
+    const np = s.players.length;
     document.getElementById('lobby-status').textContent =
-      `${s.players.length} player${s.players.length!==1?'s':''} in lobby`;
+      `${np} ${t('players')} ${t('waitingPlayers')}`;
     if (s.id) {
       const codeEl = document.getElementById('lobby-code');
       codeEl.style.display = 'inline-block';
       codeEl.textContent = s.id;
     }
+    document.getElementById('invite-box').textContent = t('copyInvite');
     document.getElementById('lobby-list').innerHTML =
-      s.players.map((p,i)=>`<div>${p.baseName}${i===0?' [host]':''}</div>`).join('');
+      s.players.map((p,i)=>`<div>${p.baseName}${i===0?' ['+t('host')+']':''}</div>`).join('');
+    const btnStart = document.getElementById('btn-start');
+    if (btnStart) btnStart.textContent = t('startGame');
+    const btnLeave = document.getElementById('btn-leave-lobby');
+    if (btnLeave) btnLeave.textContent = t('leaveLobby');
     return;
   }
 
@@ -444,11 +497,17 @@ function applyState(s) {
     showToast(s.lastAction); _lastToastMsg = s.lastAction;
   }
 
+  // Translate static in-game labels
+  const potLbl = document.getElementById('pot-label');
+  if (potLbl) potLbl.textContent = t('totalPot');
+  const btnLeaveGame = document.getElementById('btn-leave-game');
+  if (btnLeaveGame) btnLeaveGame.textContent = t('leave');
+
   // Pot
   document.getElementById('pot-ui').textContent = `${(s.pot||0).toFixed(1)} BB`;
   const spEl = document.getElementById('side-pots-ui');
   spEl.innerHTML = (s.sidePots&&s.sidePots.length>1)
-    ? s.sidePots.map((sp,i)=>`<div class="side-pot-chip">${i===0?'Main':'Side '+i}: ${sp.amount.toFixed(1)}</div>`).join('')
+    ? s.sidePots.map((sp,i)=>`<div class="side-pot-chip">${i===0?t('main'):t('side')+' '+i}: ${sp.amount.toFixed(1)}</div>`).join('')
     : '';
 
   // Board
@@ -474,15 +533,23 @@ function applyState(s) {
     const el = document.getElementById(id);
     if (el) el.disabled = !myTurn;
   });
+  document.querySelectorAll('.preset-btn').forEach(b => b.disabled = !myTurn);
   if (me && myTurn) {
     const bb = s.settings?.bb || 1;
     const diff = (s.currentCall||0) - (me.bet||0);
     document.getElementById('btn-call').textContent = diff<=0 ? t('check') : `${t('call')} ${diff.toFixed(1)}`;
-    const minR = Math.max((s.currentCall||bb)+bb, bb*2);
-    const maxR = (me.stack||0) + (me.bet||0);
+    _minRaise = Math.max((s.currentCall||bb)+bb, bb*2);
+    _maxRaise = (me.stack||0) + (me.bet||0);
+    _potSize  = s.pot || 0;
     const sl = document.getElementById('raise-slider');
-    sl.min = minR; sl.max = maxR;
-    if (parseFloat(sl.value) < minR) { sl.value = minR; syncSlider(minR); }
+    sl.min = _minRaise; sl.max = _maxRaise;
+    // Reset slider to min raise whenever our turn starts
+    if (parseFloat(sl.value) < _minRaise || !_myTurnActive) { sl.value = _minRaise; syncSlider(_minRaise); }
+    if (!_myTurnActive) startTurnTimer(30000);
+    _myTurnActive = true;
+  } else {
+    if (_myTurnActive) stopTurnTimer();
+    _myTurnActive = false;
   }
 
   // Seats

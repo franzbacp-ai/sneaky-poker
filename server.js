@@ -293,6 +293,32 @@ io.on('connection', (socket) => {
     });
 });
 
+// ─── Turn timer (30s auto-fold) ───────────────────────────────────────────────
+const turnTimers = new Map(); // lobbyId → timeout handle
+
+function clearTurnTimer(g) {
+    const t = turnTimers.get(g.id);
+    if (t) { clearTimeout(t); turnTimers.delete(g.id); }
+}
+
+function armTurnTimer(g) {
+    clearTurnTimer(g);
+    if (g.allInShowdown || g.phase === 'LOBBY' || g.phase === 'SHOWDOWN') return;
+    const p = g.players[g.currentTurn];
+    if (!p || p.folded || p.isAllIn || p.outOfChips || p.queued) return;
+    // Attach turn token so we only act if the player hasn't already moved
+    const token = g.actionCount;
+    const handle = setTimeout(() => {
+        if (!lobbies.has(g.id)) return;
+        if (g.actionCount !== token) return; // player already acted
+        const idx = g.currentTurn;
+        if (idx >= 0 && idx < g.players.length) {
+            handlePlayerAction(g, idx, { type: 'fold' });
+        }
+    }, 30000);
+    turnTimers.set(g.id, handle);
+}
+
 // ─── Start New Hand ───────────────────────────────────────────────────────────
 function startNewHand(g) {
     // Flush queue → active seats
@@ -341,10 +367,12 @@ function startNewHand(g) {
     g.currentTurn = firstToAct;
     g.bettingRoundStartIdx = firstToAct;
     broadcastState(g);
+    armTurnTimer(g);
 }
 
-// ─── Handle Player Action ─────────────────────────────────────────────────────
+// ─── Handle Player Action ─────────────────────────────────────────────────────────────
 function handlePlayerAction(g, idx, action) {
+    clearTurnTimer(g);
     const p = g.players[idx];
     const { currentCall } = g;
 
@@ -399,10 +427,12 @@ function handlePlayerAction(g, idx, action) {
     }
     g.currentTurn = nextIdx;
     broadcastState(g);
+    armTurnTimer(g);
 }
 
-// ─── Advance Phase ────────────────────────────────────────────────────────────
+// ─── Advance Phase ─────────────────────────────────────────────────────────────
 function advancePhase(g) {
+    clearTurnTimer(g);
     g.players.forEach(p => { if (!p.outOfChips) p.bet = 0; });
     g.currentCall = 0; g.actionCount = 0; g._prevCall = 0; g.lastRaiserIdx = -1;
     if      (g.phase === 'PREFLOP') { g.board.push(...g.deck.dealCommunity(3)); g.phase = 'FLOP'; }
@@ -419,6 +449,7 @@ function advancePhase(g) {
     while (g.players[first].folded || g.players[first].isAllIn) first = nextActive(g, first);
     g.currentTurn = first; g.bettingRoundStartIdx = first;
     broadcastState(g);
+    armTurnTimer(g);
 }
 
 // ─── Run Out Board ────────────────────────────────────────────────────────────
@@ -473,6 +504,7 @@ function endHand(g, winner) {
 
 // ─── Finish Round ─────────────────────────────────────────────────────────────
 function finishRound(g) {
+    clearTurnTimer(g);
     g.pot = 0; g.sidePots = [];
     g.players.forEach(p => { if (p.stack <= 0) p.outOfChips = true; });
     g.dealerIdx = (g.dealerIdx + 1) % g.players.length;
