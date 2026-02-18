@@ -19,17 +19,26 @@
 </head>
 <body>
 
-<audio id="snd-shuffle" src="sounds/shuffle.mp3"></audio>
-<audio id="snd-chips"   src="sounds/chips.mp3"></audio>
-<audio id="snd-win"     src="sounds/win.mp3"></audio>
-<audio id="snd-check"   src="sounds/check.mp3"></audio>
-<audio id="snd-allin"   src="sounds/allin.mp3"></audio>
+<!-- sounds loaded via Web Audio API below -->
 
 <div id="reenter-overlay">
   <h1 id="busted-title">BUSTED</h1>
   <div id="busted-sub" style="color:#5a7a9a;font-size:.95rem;letter-spacing:2px">You ran out of chips</div>
   <button class="btn-reenter" id="btn-reenter" onclick="socket.emit('reenter')">RE-ENTER</button>
 </div>
+
+<!-- Leave confirm modal -->
+<div id="leave-modal">
+  <div id="leave-modal-box">
+    <div id="leave-modal-title">LEAVE LOBBY?</div>
+    <div id="leave-modal-sub">You will be removed from the table.</div>
+    <div id="leave-modal-btns">
+      <button id="leave-modal-cancel" onclick="closeLeaveModal()">CANCEL</button>
+      <button id="leave-modal-confirm" onclick="confirmLeave()">LEAVE</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- ── Setup ─────────────────────────────────────────────────────────────── -->
@@ -149,9 +158,50 @@ function toggleLang() {
 }
 
 // ── Sound ─────────────────────────────────────────────────────────────────────
+// ── Audio (Web Audio API) ─────────────────────────────────────────────────────
+let _audioCtx = null;
+const _audioBuffers = {};
+const _soundFiles = {
+  'snd-shuffle': 'sounds/shuffle.mp3',
+  'snd-chips':   'sounds/chips.mp3',
+  'snd-win':     'sounds/win.mp3',
+  'snd-check':   'sounds/check.mp3',
+  'snd-allin':   'sounds/allin.mp3',
+};
+
+function _getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
+// Preload all sounds on first user interaction
+let _soundsLoaded = false;
+function _loadSounds() {
+  if (_soundsLoaded) return;
+  _soundsLoaded = true;
+  const ctx = _getAudioCtx();
+  for (const [id, path] of Object.entries(_soundFiles)) {
+    fetch(path)
+      .then(r => r.arrayBuffer())
+      .then(buf => ctx.decodeAudioData(buf))
+      .then(decoded => { _audioBuffers[id] = decoded; })
+      .catch(() => {});
+  }
+}
+document.addEventListener('click', _loadSounds, { once: true });
+document.addEventListener('keydown', _loadSounds, { once: true });
+
 function playSound(id) {
-  const s = document.getElementById(id);
-  if (s) { s.currentTime = 0; s.play().catch(() => {}); }
+  try {
+    const ctx = _getAudioCtx();
+    const buf = _audioBuffers[id];
+    if (!buf) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch(e) {}
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -179,6 +229,18 @@ function copyLobbyCode() {
   navigator.clipboard.writeText(code).then(() => showToast('Lobby code copied!'));
 }
 function leaveLobby() {
+  document.getElementById('leave-modal-title').textContent   = t('leaveTitle');
+  document.getElementById('leave-modal-sub').textContent     = t('leaveSub');
+  document.getElementById('leave-modal-cancel').textContent  = t('cancel');
+  document.getElementById('leave-modal-confirm').textContent = t('leave');
+  document.getElementById('leave-modal').style.display = 'flex';
+}
+function closeLeaveModal() {
+  document.getElementById('leave-modal').style.display = 'none';
+}
+function confirmLeave() {
+  closeLeaveModal();
+  socket.emit('leave');
   localStorage.removeItem('pokerToken');
   localStorage.removeItem('pokerLobby');
   location.reload();

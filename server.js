@@ -284,6 +284,27 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ── Leave lobby (intentional) ──────────────────────────────────────────
+    socket.on('leave', () => {
+        const lobby = getLobbyForSocket(socket.id);
+        if (!lobby) return;
+        // Remove from players and queue entirely
+        lobby.players = lobby.players.filter(p => p.id !== socket.id);
+        lobby.queue   = lobby.queue.filter(p => p.id !== socket.id);
+        // Remove token mapping so they can't reconnect as this player
+        for (const [tok, sid] of sessions) { if (sid === socket.id) { sessions.delete(tok); break; } }
+        socket.leave(lobby.id);
+        // If mid-hand and now fewer than 2 active players, advance the hand
+        const active = activePlayers(lobby);
+        if (lobby.phase !== 'LOBBY' && active.length < 2) {
+            setTimeout(() => { if (lobby.phase !== 'LOBBY') startNewHand(lobby); }, 800);
+        } else {
+            broadcastState(lobby);
+        }
+        // Clean up empty lobbies
+        if (lobby.players.length === 0 && lobby.queue.length === 0) lobbies.delete(lobby.id);
+    });
+
     // ── Disconnect ────────────────────────────────────────────────────────────
     socket.on('disconnect', () => {
         const lobby = getLobbyForSocket(socket.id);
