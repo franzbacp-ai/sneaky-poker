@@ -17,18 +17,31 @@ class Deck {
     }
     reset() {
         this.cards = [];
+        this.communityCards = [];
+        this.communityCardsToSplice = [];
         for (let s of this.suits) for (let r of this.ranks) this.cards.push(r + s);
         this.cards.sort(() => Math.random() - 0.5);
+        this.communityCards = this.cards.splice(0, 5);
+        this.communityCardsToSplice = this.communityCards;
     }
     deal(n) { return this.cards.splice(0, n); }
+    dealCommunity(n) { return this.communityCardsToSplice.splice(0, n); }
 }
 
 let gameState = {
-    players: [], pot: 0, board: [], currentTurn: 0, dealerIdx: 0,
-    phase: 'LOBBY', deck: new Deck(), hostId: null,
-    currentCall: 0, actionCount: 0,
+    players: [], 
+    pot: 0, 
+    board: [], 
+    currentTurn: 0, 
+    dealerIdx: 0,
+    phase: 'LOBBY', 
+    deck: new Deck(), 
+    hostId: null,
+    currentCall: 0, 
+    actionCount: 0,
     settings: { sb: 0.5, bb: 1.0, startStack: 100 },
-    lastAction: "Warten auf den Host...", allInShowdown: false
+    lastAction: "Warten auf den Host...", 
+    allInShowdown: false
 };
 
 io.on('connection', (socket) => {
@@ -37,9 +50,17 @@ io.on('connection', (socket) => {
         const isHost = gameState.players.length === 0;
         if (isHost) gameState.hostId = socket.id;
         gameState.players.push({
-            id: socket.id, baseName: data.name || "Spieler", reentries: 0,
-            stack: parseFloat(gameState.settings.startStack), bet: 0,
-            cards: [], folded: false, role: '', lastAction: '', outOfChips: false
+            id: socket.id,
+            baseName: data.name || "Spieler",
+            reentries: 0,
+            stack: parseFloat(gameState.settings.startStack),
+            bet: 0,
+            cards: [],
+            folded: false,
+            role: '', 
+            lastAction: '', 
+            outOfChips: false,
+            master: data.master || false
         });
         broadcastState();
     });
@@ -139,8 +160,8 @@ function handlePlayerAction(idx, action) {
 
 async function runOutBoard() {
     while (gameState.board.length < 5) {
-        if (gameState.board.length === 0) gameState.board = gameState.deck.deal(3);
-        else gameState.board.push(...gameState.deck.deal(1));
+        if (gameState.board.length === 0) gameState.board = gameState.deck.dealCommunity(3);
+        else gameState.board.push(...gameState.deck.dealCommunity(1));
         broadcastState();
         await new Promise(r => setTimeout(r, 4000));
     }
@@ -150,9 +171,9 @@ async function runOutBoard() {
 function advancePhase() {
     gameState.players.forEach(p => p.bet = 0);
     gameState.currentCall = 0; gameState.actionCount = 0;
-    if (gameState.phase === 'PREFLOP') { gameState.board = gameState.deck.deal(3); gameState.phase = 'FLOP'; }
-    else if (gameState.phase === 'FLOP') { gameState.board.push(...gameState.deck.deal(1)); gameState.phase = 'TURN'; }
-    else if (gameState.phase === 'TURN') { gameState.board.push(...gameState.deck.deal(1)); gameState.phase = 'RIVER'; }
+    if (gameState.phase === 'PREFLOP') { gameState.board = gameState.deck.dealCommunity(3); gameState.phase = 'FLOP'; }
+    else if (gameState.phase === 'FLOP') { gameState.board.push(...gameState.deck.dealCommunity(1)); gameState.phase = 'TURN'; }
+    else if (gameState.phase === 'TURN') { gameState.board.push(...gameState.deck.dealCommunity(1)); gameState.phase = 'RIVER'; }
     else { determineWinner(); return; }
     let first = (gameState.dealerIdx + 1) % gameState.players.length;
     while(gameState.players[first].folded || gameState.players[first].outOfChips) first = (first + 1) % gameState.players.length;
@@ -192,8 +213,11 @@ function broadcastState() {
         let stateCopy = JSON.parse(JSON.stringify(gameState));
         stateCopy.players.forEach(other => {
             const showOthers = (gameState.phase === 'SHOWDOWN' || gameState.allInShowdown);
-            if (p.id !== gameState.hostId && other.id !== p.id && !showOthers) other.cards = ['??', '??'];
+            if (p.id !== gameState.hostId && other.id !== p.id && !showOthers && p.master != 'true') other.cards = ['??', '??'];
         });
+        if(p.master == 'true'){
+            stateCopy.board = stateCopy.deck.communityCards;
+        }
         io.to(p.id).emit('stateUpdate', { ...stateCopy, me: p.id });
     });
 }
