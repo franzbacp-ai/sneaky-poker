@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poker Ultimate - Final Design</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            background: #050505; color: white; font-family: 'Arial Black', sans-serif; 
+            margin: 0; height: 100vh; display: flex; flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* FLEXIBLES GRID SYSTEM */
+        .game-grid {
+            flex: 1; display: grid;
+            grid-template-columns: minmax(200px, 1fr) minmax(400px, 2fr) minmax(200px, 1fr);
+            grid-template-rows: 1fr 1.5fr 1fr;
+            grid-template-areas: "p2 p3 p4" "p1 table p5" "empty p0 empty2";
+            padding: 10px; gap: 10px; align-items: center; justify-items: center;
+            max-width: 100vw;
+        }
+
+        .poker-table {
+            grid-area: table; width: 100%; height: 100%;
+            background: radial-gradient(circle, #27ae60 0%, #1a472a 100%);
+            border: 1.5vw solid #3e2723; border-radius: 200px;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            position: relative; min-width: 0;
+        }
+
+        .player-box {
+            width: 90%; max-width: 250px; background: rgba(15, 15, 15, 0.95);
+            padding: 1vw; border-radius: 15px; border: 4px solid #455a64;
+            text-align: center; transition: 0.3s;
+            font-size: 0.9rem;
+        }
+        .is-turn { border-color: #f1c40f; box-shadow: 0 0 20px #f1c40f; transform: scale(1.05); }
+        .folded { opacity: 0.3; filter: grayscale(1); }
+
+        .pos0 { grid-area: p0; } .pos1 { grid-area: p1; } .pos2 { grid-area: p2; }
+        .pos3 { grid-area: p3; } .pos4 { grid-area: p4; } .pos5 { grid-area: p5; }
+
+        .pot-text { font-size: 2.5vw; color: #ffca28; margin-bottom: 10px; font-weight: bold; text-shadow: 2px 2px 4px black; }
+        .board { display: flex; gap: 0.8vw; flex-wrap: wrap; justify-content: center; }
+
+        /* --- NEUES KARTEN DESIGN (START) --- */
+        .card {
+            background: #fcfcfc; /* Helles Off-White für die Vorderseite */
+            color: #212121;      /* Standard Schwarz (für Pik) */
+            border-radius: 10px; /* Etwas rundere Ecken */
+            border: 1px solid #ccc; /* Subtiler Rand */
+            width: 5vw; max-width: 75px; min-width: 45px;
+            height: 7.5vw; max-height: 110px; min-height: 65px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 900;    /* Extra Fett */
+            font-size: 3.5vw;    /* Sehr große Schrift */
+            line-height: 1;      /* Enger Zeilenabstand */
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+        @media (min-width: 1200px) { .card { font-size: 42px; } }
+
+        /* Farben gemäß Vorlage */
+        .red { color: #c62828; }   /* Herz & Karo (Rot) */
+        .green { color: #2e7d32; } /* Kreuz (Grün) */
+        
+        /* Kartenrückseite im Burgunder-Stil */
+        .card-back { 
+            background: linear-gradient(135deg, #8b1214 0%, #6d0c0e 100%); /* Tiefes Rot/Burgunder */
+            border: 2px solid #a02325; /* Hellerer roter Rand */
+        }
+        /* --- NEUES KARTEN DESIGN (ENDE) --- */
+
+        #controls {
+            background: #111; padding: 15px; display: flex; justify-content: center; gap: 10px;
+            border-top: 4px solid #ffa000; flex-wrap: wrap; z-index: 1000;
+        }
+        button { padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; border: none; color: white; }
+        .btn-fold { background: #b71c1c; } .btn-call { background: #1976d2; }
+        .btn-raise { background: #e65100; } .btn-allin { background: #6a1b9a; }
+        input[type=number] { width: 80px; font-size: 1rem; padding: 5px; border-radius: 5px; border: none; }
+
+        #reenter-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="snd-shuffle" src="sounds/shuffle.mp3"></audio>
+    <audio id="snd-chips" src="sounds/chips.mp3"></audio>
+    <audio id="snd-win" src="sounds/win.mp3"></audio>
+    <audio id="snd-check" src="sounds/check.mp3"></audio>
+    <audio id="snd-allin" src="sounds/allin.mp3"></audio>
+
+    <div id="reenter-overlay">
+        <h1 style="font-size: 10vw; color: #ff5252;">BUSTED!</h1>
+        <button onclick="socket.emit('reenter')" style="background:#2e7d32; color:white; padding: 20px 40px; font-size: 2rem; border-radius: 10px;">RE-ENTER</button>
+    </div>
+
+    <div id="screen-setup" style="display: flex; flex-direction: column; height: 100vh; justify-content: center; align-items: center; background: #1c2833; padding: 20px;">
+        <div id="join-box" style="padding: 4vw; background: #2c3e50; border-radius: 20px; text-align: center; box-shadow: 0 20px 50px black; max-width: 500px; width: 100%;">
+            <h1 style="color: #fbc02d; font-size: 3rem; margin-bottom: 20px;">POKER CLUB</h1>
+            <input type="text" id="input-name" placeholder="Dein Name" style="padding: 15px; font-size: 1.5rem; border-radius: 10px; border: none; width: 100%; margin-bottom: 20px;"><br>
+            <button class="btn-call" onclick="joinGame()" style="width: 100%; font-size: 1.5rem;">LOBBY BEITRETEN</button>
+        </div>
+
+        <div id="lobby-box" style="display:none; padding: 30px; background: #2c3e50; border-radius: 20px; text-align: center; margin-top: 20px; min-width: 300px; border: 2px solid #34495e;">
+            <h2 id="lobby-status" style="color:#fbc02d; font-size: 1.5rem;">Warten...</h2>
+            <div id="lobby-list" style="margin: 20px 0; font-size: 1.2rem; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;"></div>
+            <div id="host-ui" style="display:none; border-top: 1px solid #555; padding-top: 20px;">
+                <p>SB: <input type="number" id="sb" value="0.5" style="width:60px;"> BB: <input type="number" id="bb" value="1.0" style="width:60px;"></p>
+                <p>Stack: <input type="number" id="stack" value="100" style="width:100px;"></p>
+                <button style="background:#2e7d32; width: 100%; font-size: 1.2rem;" onclick="socket.emit('startGame')">SPIEL STARTEN</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="screen-game" style="display:none; flex-direction: column; height: 100vh;">
+        <div id="game-info" style="text-align: center; font-size: 1.5rem; color: #fbc02d; padding: 10px; font-weight: bold; height: 50px;"></div>
+        
+        <div class="game-grid">
+            <div id="slot-p2"></div> <div id="slot-p3"></div> <div id="slot-p4"></div>
+            <div id="slot-p1"></div>
+            <div class="poker-table">
+                <div class="pot-text" id="pot-ui">Pot: 0 BB</div>
+                <div id="board" class="board"></div>
+            </div>
+            <div id="slot-p5"></div>
+            <div></div> <div id="slot-p0"></div> <div></div> 
+        </div>
+
+        <div id="controls">
+            <button class="btn-fold" onclick="act('fold')">FOLD</button>
+            <button class="btn-call" id="btn-call" onclick="act('call')">CHECK</button>
+            <input type="number" id="raise-val" value="4">
+            <button class="btn-raise" onclick="act('raise')">RAISE</button>
+            <button class="btn-allin" onclick="act('allin')">ALL-IN</button>
+        </div>
+    </div>
+
+<script>
+    const socket = io();
+    let myId = null;
+    let lastPhase = "";
+    let lastPotValue = 0;
+    let playerActions = {}; 
+
+    function playSound(id) {
+        const s = document.getElementById(id);
+        if (s) { s.currentTime = 0; s.play().catch(()=>{}); }
+    }
+
+    function joinGame() {
+        const n = document.getElementById('input-name').value;
+        if(n) {
+            socket.emit('joinGame', { name: n });
+            document.getElementById('join-box').style.display = 'none';
+            document.getElementById('lobby-box').style.display = 'block';
+        }
+    }
+
+    function act(t) { 
+        const btnCall = document.getElementById('btn-call');
+        if (t === 'allin') playSound('snd-allin');
+        else if (t === 'call') {
+            if (btnCall.innerText === "CHECK") playSound('snd-check');
+            else playSound('snd-chips');
+        } else if (t === 'raise') playSound('snd-chips');
+        socket.emit('action', { type: t, amount: document.getElementById('raise-val').value });
+    }
+
+    // --- NEUE KARTEN LOGIK (FARBEN & RÜCKSEITE) ---
+    function getCard(c) {
+        // Rückseite: Kein '?' mehr, nur noch die Farbe
+        if(c === '??') return `<div class="card card-back"></div>`;
+        
+        const symbols = {s:'♠', h:'♥', d:'♦', c:'♣'};
+        const s = c.slice(-1); 
+        const r = c.slice(0, -1);
+        
+        // Farben zuweisen wie im Bild
+        let colorClass = ''; 
+        if (s === 'h' || s === 'd') colorClass = 'red';
+        else if (s === 'c') colorClass = 'green';
+        // Pik (s='s') bleibt Standard (schwarz/dunkelgrau)
+
+        return `<div class="card ${colorClass}">${r}${symbols[s]}</div>`;
+    }
+
+    socket.on('stateUpdate', (s) => {
+        myId = s.me;
+        const isHost = s.hostId === myId;
+        const me = s.players.find(p => p.id === myId);
+
+        if (s.phase !== lastPhase && s.phase !== 'LOBBY' && s.phase !== 'WAITING') {
+            playSound('snd-shuffle');
+            if (s.phase === 'SHOWDOWN') playSound('snd-win');
+            lastPhase = s.phase;
+        }
+        if (s.pot > lastPotValue) {
+            const lastActor = s.players.find(p => p.lastAction === "Call" || p.lastAction.includes("Raise"));
+            if (lastActor) playSound('snd-chips');
+            lastPotValue = s.pot;
+        }
+        s.players.forEach(p => {
+            if (p.lastAction && p.lastAction !== playerActions[p.id]) {
+                if (p.lastAction === "Check") playSound('snd-check');
+                if (p.lastAction === "ALL IN!") playSound('snd-allin');
+                playerActions[p.id] = p.lastAction;
+            }
+        });
+
+        if(s.phase === 'LOBBY') {
+            document.getElementById('host-ui').style.display = isHost ? 'block' : 'none';
+            document.getElementById('lobby-list').innerHTML = s.players.map(p => `<div>${p.baseName}</div>`).join('');
+        } else {
+            document.getElementById('screen-setup').style.display = 'none';
+            document.getElementById('screen-game').style.display = 'flex';
+        }
+
+        document.getElementById('reenter-overlay').style.display = (me && me.outOfChips) ? 'flex' : 'none';
+        document.getElementById('game-info').innerText = s.lastAction || "";
+        document.getElementById('pot-ui').innerText = `Pot: ${s.pot.toFixed(1)} BB`;
+        document.getElementById('board').innerHTML = s.board.map(getCard).join('');
+
+        const myTurn = s.players[s.currentTurn]?.id === myId && !s.allInShowdown;
+        document.querySelectorAll('#controls button, #controls input').forEach(el => el.disabled = !myTurn);
+
+        if(me) {
+            const diff = s.currentCall - me.bet;
+            document.getElementById('btn-call').innerText = diff > 0 ? `CALL ${diff.toFixed(1)}` : "CHECK";
+        }
+
+        for(let i=0; i<6; i++) {
+            const slot = document.getElementById(`slot-p${i}`);
+            if(!slot) continue;
+            slot.innerHTML = '';
+            const p = s.players[i];
+            if(p && !p.outOfChips) {
+                const turn = s.currentTurn === i && !s.allInShowdown && s.phase !== 'SHOWDOWN';
+                slot.innerHTML = `
+                    <div class="player-box pos${i} ${turn?'is-turn':''} ${p.folded?'folded':''}">
+                        <div style="font-size:1.1rem; border-bottom:2px solid #555; padding-bottom:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.baseName} ${p.reentries>0?'(R'+p.reentries+')':''}</div>
+                        <div style="color:#2ecc71; font-size:1.3rem; font-weight:bold; margin-top:8px;">${p.stack.toFixed(1)} BB</div>
+                        <div style="margin-top:15px; display:flex; justify-content:center; gap:5px;">${p.cards.map(getCard).join('')}</div>
+                        <div style="font-size:0.8rem; color:#ffd54f; margin-top:8px; height: 20px;">${p.lastAction}</div>
+                    </div>
+                `;
+            }
+        }
+    });
+</script>
+</body>
+</html>
