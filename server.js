@@ -22,7 +22,7 @@ class Deck {
         for (let s of this.suits) for (let r of this.ranks) this.cards.push(r + s);
         this.cards.sort(() => Math.random() - 0.5);
         this.communityCards = this.cards.splice(0, 5);
-        this.communityCardsToSplice = this.communityCards;
+        this.communityCardsToSplice =  structuredClone( this.communityCards);
     }
     deal(n) { return this.cards.splice(0, n); }
     dealCommunity(n) { return this.communityCardsToSplice.splice(0, n); }
@@ -222,4 +222,5 @@ function broadcastState() {
     });
 }
 const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, () => console.log(`Server läuft auf Port ${PORT}`));
